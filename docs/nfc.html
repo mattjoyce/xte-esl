@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XTE · NFC reader</title>
+<style>
+  :root { color-scheme: light; font: 16px/1.55 system-ui, sans-serif; color: #18332e; background: #f3f5ef; }
+  * { box-sizing: border-box; }
+  body { max-width: 720px; margin: auto; padding: 28px 20px 60px; }
+  .eyebrow { font-size: .8rem; letter-spacing: .15em; text-transform: uppercase; color: #566e65; }
+  h1 { font-size: clamp(2rem, 8vw, 3.2rem); line-height: 1.1; letter-spacing: -.04em; margin: 18px 0; }
+  h2 { font-size: 1.15rem; margin-top: 0; }
+  .card { background: white; border: 1px solid #d8e1d6; border-radius: 18px; padding: 22px; margin: 20px 0; }
+  #status { font-weight: 600; }
+  button { font: inherit; font-weight: 600; border: 1px solid #bccbbf; border-radius: 12px; background: white; color: inherit; padding: 12px 18px; cursor: pointer; }
+  button.primary { background: #205c44; color: white; border-color: #205c44; }
+  button:disabled { opacity: .45; cursor: default; }
+  button:focus-visible, a:focus-visible { outline: 3px solid #e89f2a; outline-offset: 3px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .muted, small { color: #5c6e65; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .82rem; background: #f3f5ef; padding: 12px; border-radius: 8px; }
+  dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 18px; }
+  dt { color: #5c6e65; } dd { margin: 0; overflow-wrap: anywhere; }
+  a { color: #205c44; } summary { cursor: pointer; font-weight: 600; }
+</style>
+<body>
+  <div class="eyebrow">XTE / device lab</div>
+  <h1>Tap a label.<br>See what it says.</h1>
+  <p>Read a shelf label with your phone’s NFC. Keep this page visible, unlock your phone, and hold its NFC antenna close to the label.</p>
+  <section class="card" aria-label="Scanner">
+    <p id="status" role="status" aria-live="polite">Checking browser…</p>
+    <p id="support" class="muted"></p>
+    <div class="actions">
+      <button id="start" class="primary" disabled>Start scanning</button>
+      <button id="stop" disabled>Stop</button>
+    </div>
+    <p><small>This page only reads. It does not write to the label or refresh its display. Readings stay in this browser tab.</small></p>
+  </section>
+  <section class="card">
+    <h2>Latest label</h2>
+    <p id="empty" class="muted">No label read yet.</p>
+    <dl id="label"></dl>
+  </section>
+  <section class="card">
+    <h2>Readings</h2>
+    <p class="muted">Times include your UTC offset for comparison with Bluetooth observations. The latest 100 events are kept.</p>
+    <div class="actions">
+      <button id="download" disabled>Download log</button>
+      <button id="clear">Clear</button>
+      <button id="example">Show example</button>
+    </div>
+    <div id="events"></div>
+  </section>
+  <details class="card">
+    <summary>Browser support &amp; this label’s quirks</summary>
+    <p>Use Chrome on an NFC-equipped Android phone, enable NFC in phone settings, and open this page directly over HTTPS. An ordinary HTTP address on your laptop’s local network will not work. iPhone browsers do not offer Web NFC.</p>
+    <p>Web NFC exposes NDEF records, not raw NFC commands, chip configuration, or a full memory dump. The hex shown here contains only the record data supplied by the browser.</p>
+    <p>Our PSJ-213 dump has a Text record without the required language header. Chrome may reject it or omit part of its contents. A read error does not prove the NFC chip is faulty. If that happens, use a native NFC reader app to inspect the tag.</p>
+    <p><a href="https://developer.chrome.com/docs/capabilities/nfc">Chrome’s Web NFC documentation</a></p>
+  </details>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+let controller = null;
+let reader = null;
+const events = [];
+const supported = window.isSecureContext && window.top === window && 'NDEFReader' in window;
+$('start').disabled = !supported;
+$('status').textContent = supported ? 'Ready to scan' : 'NFC scanning is unavailable here';
+$('support').textContent = !window.isSecureContext
+  ? 'Open this page over HTTPS on your Android phone. HTTP over your local network cannot access NFC.'
+  : window.top !== window ? 'Open this page directly, outside an embedded preview.'
+  : !('NDEFReader' in window) ? 'Use Chrome on an NFC-equipped Android phone. You can still view the example below.'
+  : 'Tap Start scanning and allow NFC access, then bring your phone to the label.';
+
+function timestamp() {
+  const now = new Date();
+  const offset = -now.getTimezoneOffset();
+  const pad = n => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}.${String(now.getMilliseconds()).padStart(3, '0')}${offset >= 0 ? '+' : '-'}${pad(Math.floor(Math.abs(offset)/60))}:${pad(Math.abs(offset)%60)}`;
+}
+
+function identify(text) {
+  const match = text.trim().match(/^([0-9a-f]{12}),(\d+),(\d+),(\d+),([A-Z]+)(?:,|$)/i);
+  if (!match) return null;
+  const [, serial, type, height, width, palette] = match;
+  return { serial: serial.toUpperCase(), bleAddress: serial.match(/../g).reverse().join(':').toUpperCase(), type, width, height, palette };
+}
+
+function showLabel(label, example = false) {
+  $('label').replaceChildren();
+  $('empty').hidden = Boolean(label);
+  if (!label) return;
+  for (const [key, value] of Object.entries({
+    Source: example ? 'Example — not a live scan' : 'NFC reading',
+    Serial: label.serial, 'BLE address': label.bleAddress,
+    'Tag type': label.type, Dimensions: `${label.width} × ${label.height}`, Palette: label.palette
+  })) {
+    const dt = document.createElement('dt'); dt.textContent = key;
+    const dd = document.createElement('dd'); dd.textContent = value;
+    $('label').append(dt, dd);
+  }
+}
+
+function log(entry) {
+  events.unshift({ time: timestamp(), ...entry });
+  events.length = Math.min(events.length, 100);
+  $('download').disabled = false;
+  $('events').replaceChildren();
+  for (const event of events) {
+    const details = document.createElement('details');
+    const summary = document.createElement('summary');
+    summary.textContent = `${event.time} · ${event.kind}`;
+    const pre = document.createElement('pre'); pre.textContent = JSON.stringify(event, null, 2);
+    details.append(summary, pre); $('events').append(details);
+  }
+  $('events').firstChild.open = true;
+}
+
+function recordData(record) {
+  const data = record.data;
+  const bytes = data ? new Uint8Array(data.buffer, data.byteOffset, data.byteLength) : new Uint8Array();
+  let text;
+  try { text = new TextDecoder(record.encoding || 'utf-8').decode(bytes); }
+  catch { text = new TextDecoder().decode(bytes); }
+  return { recordType: record.recordType, mediaType: record.mediaType, encoding: record.encoding,
+    lang: record.lang, text, hex: Array.from(bytes, b => b.toString(16).padStart(2, '0')).join(' ') };
+}
+
+$('start').onclick = async () => {
+  if (controller) return;
+  const session = new AbortController(); controller = session;
+  $('start').disabled = true; $('stop').disabled = false;
+  $('status').textContent = 'Requesting NFC access…';
+  try {
+    reader = new NDEFReader();
+    reader.onreading = event => {
+      if (session.signal.aborted) return;
+      const records = Array.from(event.message.records, recordData);
+      const label = records.map(r => identify(r.text)).find(Boolean) || null;
+      showLabel(label);
+      log({ kind: 'NFC reading', tagUid: event.serialNumber, label, records });
+      $('status').textContent = label ? 'Label identified — still scanning' : 'Tag read; no XTE identity found — still scanning';
+    };
+    reader.onreadingerror = () => {
+      if (session.signal.aborted) return;
+      $('status').textContent = 'Tag detected, but its NDEF message could not be read. Try holding still or use a native NFC reader app.';
+      log({ kind: 'NFC read error', message: 'Possible movement, unsupported tag, or malformed NDEF record.' });
+    };
+    await reader.scan({ signal: session.signal });
+    if (session.signal.aborted) return;
+    $('status').textContent = 'Scanning — hold your phone near the label';
+    log({ kind: 'Scan started' });
+  } catch (error) {
+    if (session.signal.aborted) return;
+    session.abort(); controller = null; reader = null;
+    $('start').disabled = !supported; $('stop').disabled = true;
+    $('status').textContent = `${error.name}: ${error.message || 'Could not start NFC. Check NFC settings and site permissions.'}`;
+    log({ kind: 'Scan failed', name: error.name, message: error.message });
+  }
+};
+
+function stop() {
+  if (!controller) return;
+  controller.abort(); controller = null; reader = null;
+  $('start').disabled = !supported; $('stop').disabled = true;
+  $('status').textContent = 'Scanning stopped'; log({ kind: 'Scan stopped' });
+}
+$('stop').onclick = stop;
+window.addEventListener('pagehide', stop);
+$('clear').onclick = () => { events.length = 0; $('events').replaceChildren(); $('download').disabled = true; showLabel(null); };
+$('example').onclick = () => {
+  const text = '36330B001D9F,140,122,250,BWRY,0,0,0,0,CN';
+  const label = identify(text); showLabel(label, true);
+  log({ kind: 'Example — not a live NFC reading', text, label });
+};
+$('download').onclick = () => {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' }));
+  const a = document.createElement('a'); a.href = url; a.download = 'xte-nfc-log.json'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+</script>
+</body>
+</html>

@@ -27,6 +27,30 @@ helps photographs and looks poor on a four-ink panel.
 Other tools: `python/scan.py` watches the advertisement, `python/probe.py`
 is an interactive GATT shell.
 
+## Phone NFC reader
+
+[`docs/nfc.html`](docs/nfc.html) is a standalone, read-only Web NFC page for
+Chrome on an NFC-equipped Android phone. Serve it over HTTPS, open it directly
+on the phone, and tap **Start scanning**. It shows XTE identity fields, the
+record bytes exposed by the browser, and an exportable timestamped log.
+**Show example** works without NFC hardware. iPhone browsers do not support
+Web NFC. The page does not upload images or refresh the display.
+
+For private HTTPS access with Tailscale on both devices:
+
+```sh
+sudo tailscale serve --bg --https=443 "$PWD/docs/nfc.html"
+```
+
+Open the HTTPS URL printed by that command on your phone with Tailscale
+connected. To stop serving: `sudo tailscale serve --https=443 off`.
+This requires an available Tailscale Serve HTTPS port; check existing Serve
+configuration before using it on a machine already serving another app.
+
+The PSJ-213's malformed NDEF Text record may be rejected or partly stripped
+by the browser. In that case use a native NFC reader app; Web NFC cannot
+issue raw chip commands or read the full tag memory.
+
 ## Layout
 
 | path | what |
@@ -36,6 +60,7 @@ is an interactive GATT shell.
 | `testdata/` | conformance vectors and how to use them |
 | `python/` | reference codec, BLE pusher, scan and probe tools |
 | `go/`, `ts/` | ports, each with the same self-test contract |
+| `examples/` | label renderers and test images |
 | `hardware/` | SWD findings, NFC dump, ESP32 bit-bang probe sketch |
 | `NOTES.md` | the reconnaissance log, from unboxing to first image |
 | `references/` | gitignored. APK, unpacked bundle, manual. Not needed by ports. |
