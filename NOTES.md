@@ -149,7 +149,7 @@ Three independent self-descriptions — NFC, the display, and the advertisement
 | 10 | `CN` | region |
 
 So the panel is **250 x 122, four-colour BWRY** — confirmed, not inferred.
-At 2 bpp that is 7625 bytes of framebuffer, which sets the scale of any image
+At 2 bpp that is ~~7625 bytes~~ 7750 bytes of framebuffer (122 padded to 124 per row, 250 rows; corrected after the shear was understood), which sets the scale of any image
 push.
 
 ### Self-test screen (`hardware/self-test-screen.jpg`)
@@ -213,26 +213,26 @@ page 3: e1 10 ea 00     Capability Container
 ```
 
 **1. The NDEF Text record is malformed.** Header `0xD1` = TNF 1 (Well Known),
-type `'T'`, payload length `0x28` = 40 — and the payload is 40 bytes of raw
-ASCII. A conformant Text record *must* begin with a status byte and a language
-code. A standard parser reads the first byte `'3'` (0x33) as the status byte,
-takes the low 6 bits as a language length of 51, and overruns the 40-byte
-payload immediately. So **no conformant NDEF parser can read this tag** — the
-vendor app must pull the payload as a raw string. The firmware rolls its own
-NFC encoding.
+type `'T'`, payload length `0x28` = 40. The payload starts immediately with
+ASCII `36330B001D9F,...`, without the Text record's status/language header.
+Interpreting the first byte `0x33` as status gives a language length of 51,
+which exceeds the payload. A strict Text decoder cannot decode this as a
+valid Text record, although a reader can still expose the raw payload.
+NFC Tools successfully returned the full identity on 2026-09-07; our Chrome
+page stayed at scanning. Malformed-record rejection is a hypothesis for that
+browser result, not a confirmed diagnosis. See [NFC findings](docs/nfc-findings.md).
 
-**2. The tag is 2K-class, which implies NFC-to-MCU wiring.** CC byte 2 is
-`0xEA` = 234, so 234x8 = **1872 bytes** of data area — far larger than
-NTAG213/215/216 (the 216 tops out at 872), and consistent with an
-**NTAG I2C plus 2K**. If so, the NFC chip has an I2C side wired to the MCU,
-which is how the firmware writes its own geometry string into NFC memory and
-why that string carries live values rather than factory constants. Inferred
-from CC arithmetic, not confirmed against a part marking.
+**2. The advertised capacity suggests a 2K-class tag; wiring is unknown.**
+CC byte 2 is `0xEA` = 234, advertising 234x8 = **1872 bytes** of data area.
+An NTAG I2C plus 2K is a candidate, not an identified part. Capacity alone
+proves neither an I2C connection to the MCU nor firmware support for NFC
+updates. The identity string could have been programmed at the factory;
+we have not observed it changing.
 
-**3. The duplicate at 0x400 is a dumping artifact.** Bytes `0x000-0x03F` are
-byte-identical to `0x400-0x43F`, and nothing is non-zero past `0x43E`.
-NTAG I2C 2K addresses memory as two 1K sectors; reading past sector 0 without
-issuing SECTOR SELECT wraps and re-reads sector 0. No hidden second copy.
+**3. The duplicate at 0x400 may be a dumping artifact.** Bytes `0x000-0x03F`
+are byte-identical to `0x400-0x43F`, and nothing is non-zero past `0x43E`.
+Sector wraparound during export is a possible explanation. Without a
+verified chip identity and sector-aware read, the cause is unconfirmed.
 
 **4. Treat pages 0-2 with suspicion.** Neither checksum validates: BCC0 should
 be `0x88^04^b1^52` = `0x6F` but reads `0x0A`; BCC1 should be `44^02^69^00` =

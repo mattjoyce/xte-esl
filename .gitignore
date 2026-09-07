@@ -8,3 +8,7 @@ node_modules/
 dist/
 *.bin
 .DS_Store
+
+# reverse-engineering kit: SWD probe sketch, NFC dump, reference photos. Local only.
+hardware/
+/label.png

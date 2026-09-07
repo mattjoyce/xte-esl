@@ -1,6 +1,19 @@
 # XTE protocol specification
 
-Version 1.0, 2026-09-07. Status: verified on hardware (Poshiji PSJ-213, firmware 4.0.2).
+Version 1.1, 2026-09-07.
+
+**Provenance.** This specification has two kinds of content and marks them.
+
+- *Observed*: exercised on a Poshiji PSJ-213, hardware revision 2, firmware
+  4.0.2, over BlueZ. Sections 4, 5, 6.1 (commands `01` short form and `04`),
+  6.3 (the `01` and `04` replies with status `FF`), 7, 8.1 and 8.2 without
+  patching.
+- *Transcribed*: read from the vendor application's code and reproduced
+  here faithfully, but never seen on a tag. Sections 6.2 beyond one batch,
+  the `02` and `05` commands, the `02` and `68` replies, 6.4, 8.3 and 8.4.
+  Each such section carries the line *Status: transcribed, not exercised.*
+
+A port that implements only the observed parts puts an image on a PSJ-213.
 
 This document is the only source a codec port needs. It is written in a
 controlled style: short sentences, one instruction per sentence, one name
@@ -34,7 +47,7 @@ It does not cover the base station, the cloud back end, firmware update
 | **response frame** | a frame from the tag, delivered as a BLE notification |
 | **container** | the image payload, section 6. It starts with `XTEK`. |
 | **write** | one BLE write-without-response. Maximum 244 bytes. |
-| **batch** | up to 204800 bytes of the container, sent as one group of data packets |
+| **batch** | up to 204800 bytes of the container, sent as one group of data packets. Only containers larger than that need more than one batch, section 8.4. |
 | **checksum** | the sum of the listed bytes, modulo 256, unless a width is given |
 | **panel** | the e-paper display inside the tag |
 | **buffer** | the pixel array in the tag's native orientation, section 7 |
@@ -71,14 +84,15 @@ The tag has no pairing and no bonding. Connect openly.
 3. Wait 5 ms between writes.
 
 The tag also accepts 20-byte writes at the default MTU of 23. The push is
-slower but correct.
+slower but correct. On BlueZ the stack negotiates the MTU itself (517 was
+observed); the host only has to keep each write at 244 bytes or fewer.
 
 ### 4.3 Timeouts
 
 | wait for | timeout |
 |---|---|
 | response to any command frame | 5 s |
-| a patch round (section 8.3) | 300 s |
+| a patch round (section 8.3) | 300 s, the vendor application's value. Transcribed, not exercised. |
 
 If a timeout expires, disconnect and start again.
 
@@ -106,7 +120,12 @@ The manufacturer data, including the two company-ID bytes, has this layout:
 Accept the advertisement only if byte 0 is `58`, byte 1 is `54` or `52`, and
 byte 2 is one of the four record types.
 
-The **device number** selects the pixel packing. Section 6.3 gives the rule.
+The tag alternates this record with a two-byte payload `FF 01` under the
+same company ID. The rule above rejects it. Ignore it.
+
+The **device number** selects the pixel packing. Section 7.2 gives the rule.
+The advertisement does not say which inks the panel has. That is in the
+tag's NFC record (`BWRY`) and in the vendor's model table, not on the air.
 
 ## 6. Frames
 
@@ -126,11 +145,11 @@ Commands:
 | command | payload | length | purpose |
 |---|---|---|---|
 | `01` | `u32 totalSize` | 11 | allocate flash for a container of `totalSize` bytes. Use when the container is 204800 bytes or smaller. |
-| `01` | `u32 totalSize`, `u32 offset`, `u32 length` | 19 | allocate flash for one batch. Use when the container is larger than 204800 bytes. |
-| `02` | none | 7 | ask which data packets of the current batch arrived |
+| `01` | `u32 totalSize`, `u32 offset`, `u32 length` | 19 | allocate flash for one batch. Use when the container is larger than 204800 bytes. Transcribed. |
+| `02` | none | 7 | ask which data packets of the current batch arrived. Transcribed. |
 | `04` | `00` | 8 | refresh the panel. Single screen. |
-| `04` | `03 03` | 9 | refresh the panel. Tag with more than one screen. |
-| `05` | none | 7 | apply the uploaded firmware. Send an extra `00` after the frame so the total is 8 bytes. |
+| `04` | `03 03` | 9 | refresh the panel. Tag with more than one screen. Transcribed. |
+| `05` | none | 7 | apply the uploaded firmware. Send an extra `00` after the frame so the total is 8 bytes. Transcribed. |
 
 Examples:
 
@@ -179,8 +198,8 @@ padded with `00` to 16 bytes.
 |---|---|---|
 | 0 | 3 | `XTE` |
 | 3 | 1 | frame type, `04` |
-| 4 | 1 | frame length |
-| 5 | 1 | checksum of bytes 6 to (length - 1) |
+| 4 | 1 | frame length, excluding the padding |
+| 5 | 1 | checksum of bytes 6 to (length - 1), inclusive |
 | 6 | 1 | command this response answers |
 | 7 | 1 | status |
 | 8 | n | extra bytes, defined per command |
@@ -191,10 +210,14 @@ Responses:
 |---|---|---|---|
 | `01` | `FF` | one byte, value not understood | flash allocated. Continue. |
 | `01` | other | | allocation failed. Disconnect. |
-| `02` | ignore | packet bitmap from byte 7 | see section 8.3 |
+| `02` | ignore | packet bitmap from byte 7 | see section 8.3. Transcribed. |
 | `04`, `05` | `FF` | | refresh started. The push is complete. |
-| `04`, `05` | `68` | packet bitmap from byte 8 | data packets are missing. See section 8.3. |
+| `04`, `05` | `68` | packet bitmap from byte 8 | data packets are missing. See section 8.3. Transcribed. |
 | `04`, `05` | other | | unknown result. Disconnect. |
+
+Verify a response before you act on it: byte 3 is `04`, the length byte is
+at least 8 and not more than the notification, and the checksum matches.
+Treat a frame that fails any check as absent.
 
 Ignore any notification shorter than 8 bytes. Ignore any notification that
 does not start with `XTE`.
@@ -212,12 +235,19 @@ takes a further 15 to 25 seconds to settle.
 
 ### 6.4 Packet bitmap
 
+Status: transcribed, not exercised.
+
 The packet bitmap tells the host which data packets the tag received.
 
-1. Read the bytes from the offset given in section 6.3 to the end of the frame.
+1. Read the bytes from the offset given in section 6.3 up to, but not including, the frame length byte's value. Do not read the padding.
 2. Expand each byte into 8 bits, most significant bit first.
 3. Bit `i` is data packet `i`. A `1` means received. A `0` means missing.
 4. Use only the first `total` bits, where `total` is the packet count of the batch.
+5. If the frame carries fewer than `total` bits, treat the packets without a bit as missing.
+
+A 16-byte notification carries 8 bitmap bytes from offset 8, which covers
+64 packets. A full batch has up to 170. Whether the tag then sends a longer
+notification, or several, has not been observed.
 
 ## 7. Container
 
@@ -281,9 +311,10 @@ codes  1 2 3 0 | 0 1 (0 0)
 bytes  6c 10
 ```
 
-Tags with **device number** 97, 102, 106, 109, 119 or 122 use a different
-packing that is out of scope here. All other four-colour tags, including
-device number 140, use the packing above.
+This packing is verified for **device number** 140. The vendor code applies
+it to every other four-colour tag except device numbers 97, 102, 106, 109,
+119 and 122, which use a two-plane packing that is out of scope here. A port
+must refuse a device number it does not know rather than guess.
 
 ### 7.3 RLE
 
@@ -295,13 +326,21 @@ RLE encodes the packed bytes. Do the following:
 4. Limit the run length to 255. Split longer runs.
 5. Concatenate the two encoded halves.
 
-Example: `09 09 09 09 01 01 02 02 02 02 02 02`
+Example: `09 09 09 09 09 09 01 01`
 
 ```
-first half   09 09 09 09 01 01   ->  04 09 02 01
-second half  02 02 02 02 02 02   ->  06 02
-result       04 09 02 01 06 02
+first half   09 09 09 09         ->  04 09
+second half  09 09 01 01         ->  02 09 02 01
+result       04 09 02 09 02 01
 ```
+
+Plain RLE over the whole input would give `06 09 02 01`. That is wrong.
+
+Rules the example does not show:
+
+- Splitting a long run is greedy. A run of 300 becomes `FF v 2D v`, never `96 v 96 v`.
+- An empty half produces no bytes. A one-byte input has an empty first half and encodes as `01 v`.
+- When the RLE output has exactly the raw length, use RLE.
 
 Use RLE only if the result is not longer than the raw bytes. Otherwise send
 raw with compression `00`. The tag accepts both.
@@ -319,8 +358,11 @@ as a portrait **buffer** of 122 columns and 250 rows.
 4. Pack the rotated image with width 122 and height 250. Each row is 31 bytes. The buffer is 7750 bytes.
 5. Build the container with one image record, x 0, y 0, width 122, height 250.
 
-Buffer row 0 is the right-hand edge of the panel as viewed. Byte 0 of a row
-is the top edge. Do not flip the image vertically.
+"As viewed" means the orientation in which the factory test screen's text
+(the MAC, `2.13 H:2 V:4.0.2 B:80%`) reads upright; the battery door is then
+at the back and the NFC coil under the right half. Buffer row 0 is the
+right-hand edge of the panel in that orientation. Pixel 0 of a row (bits 7
+and 6 of byte 0) is the top edge. Do not flip the image vertically.
 
 Do not send 63-byte rows (landscape) and do not pad the width to 128. Both
 display as diagonal shear.
@@ -341,13 +383,18 @@ display as diagonal shear.
 
 ### 8.3 Patch missing packets
 
+Status: transcribed, not exercised. No packet has been lost in any observed push.
+
 1. Read the packet bitmap from the response, section 6.4.
-2. Send every data packet whose bit is 0, in index order.
-3. Wait 100 ms.
-4. Send command `04` again and wait for the response.
-5. Stop after 3 patch rounds. Disconnect and report failure.
+2. If the bitmap shows nothing missing, the host and the tag disagree about the packet count. Disconnect and report failure.
+3. Send every data packet whose bit is 0, in index order.
+4. Wait 100 ms.
+5. Send command `04` again and wait for the response.
+6. Stop after 3 patch rounds. Disconnect and report failure.
 
 ### 8.4 Push a container larger than 204800 bytes
+
+Status: transcribed, not exercised. The Python codec refuses such containers.
 
 1. Divide the container into batches of 204800 bytes. The last batch can be shorter.
 2. For each batch, in order:
@@ -366,7 +413,14 @@ tags and for firmware upload.
 
 A codec port is correct when it reproduces every vector in
 `testdata/reference.json` byte for byte. `testdata/README.md` describes the
-fields. Do the conformance test before adding a BLE transport.
+fields and which vectors came from the vendor's encoder and which from this
+project's. Do the conformance test before adding a BLE transport.
+
+Every precondition failure in a port must surface as one error type of the
+port's own, never as a language runtime error. The preconditions are: pixel
+count equals width times height; packed data length equals
+`ceil(width / 4) * height`; 1 to 255 images per container; container at most
+204800 bytes for the single-batch procedure; every geometry field fits a u32.
 
 ## 10. Observed timings, PSJ-213
 

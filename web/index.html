@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XTE Label Push</title>
+<style>
+:root{--paper:#E6E8E5;--paper-2:#DCDFDB;--ink:#16181B;--ink-2:#4A4E53;--ink-3:#80858B;--red:#C1301C;--yellow:#E0B000;--line:#B9BDB8;--code:#F2F3F1;--ok:#1E7B3A}
+@media(prefers-color-scheme:dark){:root{--paper:#1A1C1F;--paper-2:#23262A;--ink:#E6E8E5;--ink-2:#B4B8BC;--ink-3:#83888E;--red:#E25640;--yellow:#F0C43A;--line:#3A3E44;--code:#111214;--ok:#5FD08A}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:720px;margin:0 auto;padding:1.5rem 1.25rem 4rem}
+h1{font-size:1.6rem;margin:0 0 .2rem;letter-spacing:-.01em}
+.sub{color:var(--ink-2);margin:0 0 1.4rem;font-size:.95rem}
+.tag{background:#EDEFF2;border-radius:12px;padding:16px 20px;box-shadow:inset 0 0 0 1px #c7cbd1;max-width:560px;margin:0 auto 1.4rem}
+canvas{width:100%;height:auto;display:block;image-rendering:pixelated;border:6px solid #C9CDCB;background:#DADCD8}
+form{display:grid;grid-template-columns:1fr 1fr;gap:.8rem 1rem}
+label{display:flex;flex-direction:column;gap:.25rem;font-size:.8rem;color:var(--ink-2)}
+label.wide{grid-column:1/-1}
+input,select{font:inherit;padding:.5rem .6rem;border:1px solid var(--line);border-radius:4px;background:var(--code);color:var(--ink);min-width:0}
+input[type=file]{padding:.3rem 0;background:none;border:0}
+.actions{grid-column:1/-1;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-top:.4rem}
+button{font:inherit;font-weight:600;padding:.6rem 1.1rem;border:0;border-radius:4px;background:var(--ink);color:var(--paper);cursor:pointer}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.5;cursor:default}
+#push{background:var(--red);color:#fff}
+#status{margin-top:1.2rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85rem;background:var(--code);border:1px solid var(--line);border-radius:4px;padding:.7rem .9rem;min-height:3.2em;max-height:12em;overflow:auto;white-space:pre-wrap}
+#status .ok{color:var(--ok)} #status .err{color:var(--red)}
+.hint{font-size:.82rem;color:var(--ink-3);margin-top:1rem}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}
+</style>
+</head>
+<body>
+<main>
+  <h1>XTE Label Push</h1>
+  <p class="sub">Draw a 250×122 four-ink label and send it to a Poshiji PSJ-213 over Web Bluetooth. No server, no account.</p>
+
+  <div class="tag"><canvas id="label" width="250" height="122" aria-label="Label preview"></canvas></div>
+
+  <form onsubmit="return false">
+    <label class="wide">Product name<input id="name" maxlength="40" placeholder="Product name" autocomplete="off"></label>
+    <label>Price<input id="price" maxlength="12" placeholder="$4.20" autocomplete="off"></label>
+    <label>Price ink<select id="priceInk"><option value="red">red</option><option value="black">black</option><option value="yellow">yellow</option></select></label>
+    <label>Note (bottom band)<input id="note" maxlength="40" placeholder="per kg · while stocks last" autocomplete="off"></label>
+    <label>Band ink<select id="bandInk"><option value="yellow">yellow</option><option value="red">red</option><option value="black">black</option><option value="white">none</option></select></label>
+    <label class="wide">Or load an image (resized to 250×122, snapped to the four inks)<input id="image" type="file" accept="image/*"></label>
+    <label class="wide">Tag name, optional (the twelve hex digits it advertises, e.g. <code>36330B001D9F</code>; leave empty to pick from a list)<input id="tag" maxlength="12" placeholder="36330B001D9F" autocomplete="off" spellcheck="false"></label>
+    <div class="actions">
+      <button id="push" type="button">Connect and push</button>
+      <button id="download" type="button" class="ghost">Download PNG</button>
+      <button id="clear" type="button" class="ghost">Clear image</button>
+    </div>
+  </form>
+
+  <div id="status" aria-live="polite"></div>
+
+  <p class="hint">Needs Chrome or Edge on Android, Windows, macOS, Linux or ChromeOS, served over HTTPS or from localhost. Safari, iOS and Firefox have no Web Bluetooth. After the push the panel flickers for about 20 seconds: that is the refresh, not a fault. The tag must not be connected elsewhere (<code>bluetoothctl disconnect</code> on Linux).</p>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>

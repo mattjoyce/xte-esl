@@ -6,7 +6,7 @@ characteristic, then reads hex from stdin and writes it to the data-in
 characteristic. Everything the tag sends back is printed with a timestamp,
 so a session doubles as a protocol capture.
 
-    ./tools/probe.py 9F:1D:00:0B:33:36
+    ./python/probe.py 9F:1D:00:0B:33:36
     > 01                 # write bytes 0x01
     > 00 0a ff           # whitespace is ignored
     > :char 2760...0002  # switch the write target

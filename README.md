@@ -1,9 +1,9 @@
 # xte-esl
 
 Host-side SDK for XTE electronic shelf labels: the BLE e-paper price tags
-sold as **Poshiji PSJ-213** (and the ESL-15/21/26/29/35/37 BWRY family). It
-puts an image on the tag from a laptop in about 2.5 seconds, no base station,
-no cloud account.
+sold as **Poshiji PSJ-213** (model ESL-21BWRY). It puts an image on the tag
+from a laptop in about 2.5 seconds, no base station, no cloud account. The
+same firmware family lists five other sizes, none tested here.
 
 The protocol was recovered from the vendor's own app and is documented
 clean-room in [`docs/protocol.md`](docs/protocol.md). Every language port is
@@ -11,21 +11,58 @@ checked byte for byte against [`testdata/reference.json`](testdata/README.md).
 A long-form explainer, including how the e-ink refresh works and why it
 flickers, is in [`docs/explainer.html`](docs/explainer.html).
 
+## Getting a tag
+
+They are sold as generic "4 colour BLE ESL" on AliExpress and similar,
+for example [this search](https://www.aliexpress.com/w/wholesale-esl-4-colour.html),
+at a few dollars each. Listings never say XTE. The housing is the best
+clue before buying: a white rounded case with a small round LED window in
+the top-right corner of the bezel, and listing renders showing a red
+header band, a yellow price block and a barcode, which is the vendor's
+default template. Other ways to tell before or after buying: the seller's app is "POSHIJI ESL Management System" or the web
+panel is `esl.pos.cn`; the tag advertises manufacturer ID `0x5258` with
+data starting `X` `R` or `X` `T`; the NFC record reads
+`<MAC>,<type>,<h>,<w>,BWRY,...`. Gicisky/PICKSMART tags (service `FEF0`) and
+OpenEPaperLink-compatible tags are different protocols and will not work
+with this SDK.
+
+## Start here
+
+- **Push an image to a tag**: the quick start below.
+- **Write a Go or TypeScript port**: run the Python self-test, read
+  [`testdata/README.md`](testdata/README.md), implement protocol.md §7
+  against the vectors, then §6, then the transport. Codec before BLE.
+- **Look up a byte**: [`docs/protocol.md`](docs/protocol.md). It marks which
+  sections were observed on hardware and which were transcribed from the
+  vendor app.
+- **Understand why**: [`docs/explainer.html`](docs/explainer.html).
+
 ## Quick start (Python)
 
 ```sh
-python3 -m venv .venv && .venv/bin/pip install bleak pillow
-.venv/bin/python python/xte.py                       # codec self-test
-.venv/bin/python python/push.py 9F:1D:00:0B:33:36 label.png --no-dither
+python3 -m venv .venv && .venv/bin/pip install bleak pillow qrcode
+.venv/bin/python python/xte.py                       # codec self-test, no tag needed
+.venv/bin/python python/scan.py -t 10                # prints your tag's address
+.venv/bin/python python/push.py <address> examples/github-qr.png --no-dither
 ```
 
-Draw the label at 250x122 using only pure white, black, red (`FF0000`) and
-yellow (`FFFF00`). `push.py` rotates it into the tag's portrait buffer, packs,
+The tag acknowledges in about two seconds and the panel then flickers black
+and white for around 20 seconds. That is the refresh. The QR code appears
+when it stops.
+
+For a price label, message or QR code without drawing anything:
+
+```sh
+.venv/bin/python python/label.py --name "Flat white" --price '$4.20' --note "regular" --push <address>
+```
+
+To draw your own, use 250x122 and only pure white, black, red (`FF0000`)
+and yellow (`FFFF00`); `examples/qr_label.py` is a worked example. `push.py` rotates it into the tag's portrait buffer, packs,
 connects, and pushes. Use `--no-dither` for flat graphics; dithering only
 helps photographs and looks poor on a four-ink panel.
 
-Other tools: `python/scan.py` watches the advertisement, `python/probe.py`
-is an interactive GATT shell.
+Other tools: `python/scan.py` prints and watches the advertisement,
+`python/probe.py` is an interactive GATT shell.
 
 ## Phone NFC reader
 
@@ -51,6 +88,11 @@ The PSJ-213's malformed NDEF Text record may be rejected or partly stripped
 by the browser. In that case use a native NFC reader app; Web NFC cannot
 issue raw chip commands or read the full tag memory.
 
+The [NFC findings](docs/nfc-findings.md) record the phone test, dump analysis,
+vendor-app evidence, and next experiments. Native NFC identification worked;
+Chrome delivered no visible reading in the test. Direct NFC refresh remains
+unproven.
+
 ## Layout
 
 | path | what |
@@ -58,11 +100,13 @@ issue raw chip commands or read the full tag memory.
 | `docs/protocol.md` | the wire format and procedures, the single source for ports |
 | `docs/explainer.html` | the illustrated guide |
 | `testdata/` | conformance vectors and how to use them |
-| `python/` | reference codec, BLE pusher, scan and probe tools |
+| `python/` | reference codec, BLE pusher, label renderer, scan and probe tools |
+| `web/` | single-page label editor that pushes over Web Bluetooth from Chrome |
+| `.claude/skills/xte-push/` | skill that lets a coding agent update the tag with one command |
 | `go/`, `ts/` | ports, each with the same self-test contract |
 | `examples/` | label renderers and test images |
-| `hardware/` | SWD findings, NFC dump, ESP32 bit-bang probe sketch |
-| `NOTES.md` | the reconnaissance log, from unboxing to first image |
+| `hardware/` | gitignored. Reverse-engineering kit: ESP32 SWD probe sketch, NFC dump, reference photos. |
+| `NOTES.md` | reconnaissance log. Read "Where this stands" at the top; the rest is history, superseded hypotheses included |
 | `references/` | gitignored. APK, unpacked bundle, manual. Not needed by ports. |
 
 ## Status

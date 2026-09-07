@@ -1,0 +1,32 @@
+{
+  "name": "@xte-esl/sdk",
+  "version": "0.1.0",
+  "description": "XTE electronic shelf label codec and BLE image uploader",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./web-bluetooth": {
+      "types": "./dist/web-bluetooth.d.ts",
+      "import": "./dist/web-bluetooth.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "selftest": "bun run build && bun test/conformance.mjs",
+    "test": "bun run selftest && bun test",
+    "prepack": "bun run build",
+    "web:build": "bun build ../web/app.ts --outfile ../web/app.js --format esm --target browser --minify",
+    "web:serve": "bun run web:build && bunx --bun serve ../web -l 8765"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "bun@1.3.14"
+}
