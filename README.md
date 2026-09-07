@@ -1,6 +1,6 @@
 # xte-esl
 
-<p align="center"><img src="docs/images/tag.png" width="520" alt="A four-colour e-paper shelf label in a white housing showing a red header band, product name, a large price in a yellow block and a barcode"></p>
+<p align="center"><img src="docs/images/tag.png" width="640" alt="A four-colour e-paper shelf label in a white housing showing a red header band, product name, a large price in a yellow block and a barcode"></p>
 
 Host-side SDK for XTE electronic shelf labels: the BLE e-paper price tags
 sold as **Poshiji PSJ-213** (model ESL-21BWRY). It puts an image on the tag
