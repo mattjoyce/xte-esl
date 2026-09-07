@@ -11,7 +11,8 @@ The protocol was recovered from the vendor's own app and is documented
 clean-room in [`docs/protocol.md`](docs/protocol.md). Every language port is
 checked byte for byte against [`testdata/reference.json`](testdata/README.md).
 A long-form explainer, including how the e-ink refresh works and why it
-flickers, is in [`docs/explainer.html`](docs/explainer.html).
+flickers, is published at https://mattjoyce.github.io/xte-esl/explainer.html
+(source in `docs/explainer.html`).
 
 ## Getting a tag
 
@@ -37,7 +38,7 @@ with this SDK.
 - **Look up a byte**: [`docs/protocol.md`](docs/protocol.md). It marks which
   sections were observed on hardware and which were transcribed from the
   vendor app.
-- **Understand why**: [`docs/explainer.html`](docs/explainer.html).
+- **Understand why**: [the field guide](https://mattjoyce.github.io/xte-esl/explainer.html).
 
 ## Quick start (Python)
 
