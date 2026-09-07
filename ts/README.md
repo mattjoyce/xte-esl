@@ -29,4 +29,5 @@ bleak and everything protocol-level is this code:
 node tools/push-hardware.mjs 9F:1D:00:0B:33:36 image.rgb   # raw 250x122 RGB bytes
 ```
 
-The Web Bluetooth transport itself has not been tried against the tag yet.
+The Web Bluetooth transport was verified the same day from Chrome on an
+Android phone through `web/index.html`.

@@ -117,7 +117,9 @@ unproven.
 | Push | verified on PSJ-213, firmware 4.0.2 |
 | Geometry | 122x250 portrait buffer, rotate 90 |
 | Large images, OTA | specified, not exercised |
-| Go, TypeScript | not started |
+| TypeScript | codec passes all vectors; uploader verified on PSJ-213 via bleak bridge and via Web Bluetooth from Android Chrome |
+| Go | not started |
+| License | MIT |
 
 ## What it is not
 
