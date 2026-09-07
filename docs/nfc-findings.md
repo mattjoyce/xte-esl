@@ -1,7 +1,7 @@
 # NFC findings — Poshiji PSJ-213
 
 Investigation: 2026-09-07, including the phone test at approximately
-21:30–21:44 Sydney time. Source session:
+21:30–21:44 Sydney time.
 
 NFC identification works with NFC Tools on the phone. The existing BLE
 uploader can update the display. Combining those into **tap → identify →
@@ -77,9 +77,8 @@ prove that the MCU updates NFC memory.
 
 [nfc.html](nfc.html) is a read-only diagnostic page with identity parsing,
 record data, timestamped events, a downloadable log and an example mode.
-The previous session served it over Tailscale HTTPS at
-a private HTTPS origin. This records the test address, not a
-guarantee that the server is still running.
+The test served it over a private Tailscale HTTPS URL for this machine;
+any HTTPS origin works.
 
 The prior session reported successful HTTPS delivery and simulated scans.
 On the real phone, Chrome stayed at scanning while NFC Tools could read the
