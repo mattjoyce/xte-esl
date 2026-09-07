@@ -1,5 +1,5 @@
 import {
-  allocate, BATCH_SIZE, dataPackets, missingPackets, parseResponse, refresh,
+  allocate, XteError, BATCH_SIZE, dataPackets, missingPackets, parseResponse, refresh,
   splitWrites, verify, type ResponseFrame,
 } from './codec.js';
 
@@ -25,7 +25,7 @@ export interface UploadOptions {
 const active = new WeakSet<BleTransport>();
 function duration(value: number, name: string, allowZero = false): number {
   if (!Number.isFinite(value) || value < (allowZero ? 0 : 1) || value > 2147483647) {
-    throw new RangeError(`Invalid ${name}`);
+    throw new XteError(`Invalid ${name}`);
   }
   return value;
 }
@@ -40,7 +40,7 @@ export async function uploadContainer(
   if (container.length < 13 || container[0] !== 0x58 || container[1] !== 0x54 ||
       container[2] !== 0x45 || container[3] !== 0x4b ||
       new DataView(container.buffer, container.byteOffset, container.byteLength).getUint32(8) !== container.length) {
-    throw new Error('Expected an XTEK container with a matching length');
+    throw new XteError('Expected an XTEK container with a matching length');
   }
   splitWrites(new Uint8Array(), transport.writeSize); // Validate before connecting.
   const refreshFrame = refresh(options.screens);

@@ -63,3 +63,20 @@ test('advertisement decoding and input bounds', () => {
   expect(() => sdk.dataPackets(new Uint8Array(204801))).toThrow();
   expect(() => sdk.splitWrites(bytes('01'), 0)).toThrow();
 });
+test('invalid codec inputs share an SDK error type and unknown devices are refused', () => {
+  const image = { width: 1, height: 1, channels: 3 as const, data: Uint8Array.of(255,255,255) };
+  for (const device of [0, 97, 102, 106, 109, 119, 122, 141, 65535]) {
+    expect(() => sdk.packPixels(image, device)).toThrow(sdk.XteError);
+  }
+  for (const invalid of [
+    () => sdk.packPixels({ ...image, width: 2 }),
+    () => sdk.encodeContainer([]),
+    () => sdk.encodeContainer([{ image, x: -1 }]),
+    () => sdk.encodePsj213(image),
+    () => sdk.allocate(204801),
+    () => sdk.dataPackets(new Uint8Array()),
+    () => sdk.splitWrites(Uint8Array.of(1), 0),
+    () => sdk.refresh(0),
+    () => sdk.addressFromName('bad'),
+  ]) expect(invalid).toThrow(sdk.XteError);
+});

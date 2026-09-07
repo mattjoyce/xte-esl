@@ -57,8 +57,11 @@ waveform.
 This week's token usage (from ccusage, needs bun):
 
 ```sh
-.venv/bin/python examples/token_weather.py --budget 500M --push 9F:1D:00:0B:33:36
+.venv/bin/python cookbook/token-tracker/token_weather.py --budget 500M --push 9F:1D:00:0B:33:36 --if-changed
 ```
+
+Other live-data recipes are in `cookbook/`; add `--if-changed` to any
+scheduled push so an unchanged picture is not redrawn.
 
 An existing image (resized to 250x122; add `--no-dither` for flat graphics,
 omit it for photos):

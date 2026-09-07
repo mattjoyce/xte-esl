@@ -289,6 +289,7 @@ def main() -> int:
     ap.add_argument("-o", "--out", default="dashboard.png")
     ap.add_argument("--scale", type=int, default=1, help="also write a scaled preview, e.g. 3")
     ap.add_argument("--push", metavar="ADDRESS", help="push to this tag after rendering")
+    ap.add_argument("--if-changed", action="store_true", help="with --push: skip if the image is unchanged since the last push")
     a = ap.parse_args()
     if a.demo:
         spec = DEMO
@@ -307,7 +308,10 @@ def main() -> int:
         im.resize((W * a.scale, H * a.scale), Image.NEAREST).save(p)
         print(f"wrote {p}")
     if a.push:
-        return subprocess.call([sys.executable, str(Path(__file__).with_name("push.py")), a.push, a.out, "--no-dither"])
+        cmd = [sys.executable, str(Path(__file__).with_name("push.py")), a.push, a.out, "--no-dither"]
+        if a.if_changed:
+            cmd.append("--if-changed")
+        return subprocess.call(cmd)
     return 0
 
 

@@ -32,7 +32,9 @@ with this SDK.
 ## Start here
 
 - **Push an image to a tag**: the quick start below.
-- **Write a Go or TypeScript port**: run the Python self-test, read
+- **Use TypeScript**: the [SDK quick start](ts/README.md) covers encoding,
+  browser uploads, cancellation, and custom BLE transports.
+- **Write another port**: run the Python self-test, read
   [`testdata/README.md`](testdata/README.md), implement protocol.md §7
   against the vectors, then §6, then the transport. Codec before BLE.
 - **Look up a byte**: [`docs/protocol.md`](docs/protocol.md). It marks which
@@ -60,7 +62,8 @@ For a price label, message or QR code without drawing anything:
 ```
 
 For a mini dashboard (hero figure, stat tiles with sparklines, a column or
-line chart, a meter) from a JSON spec:
+line chart, a meter) from a JSON spec, or live data via the
+[cookbook](cookbook/):
 
 ```sh
 .venv/bin/python python/dashboard.py examples/dashboard-solar.json --push <address>
@@ -98,7 +101,8 @@ app reads it. [NFC findings](docs/nfc-findings.md) has the detail.
 | `web/` | single-page label editor that pushes over Web Bluetooth from Chrome |
 | `skills/xte-push/` | skill that lets a coding agent update the tag with one command; `AGENTS.md` points here |
 | `go/`, `ts/` | ports, each with the same self-test contract |
-| `examples/` | label renderers and test images |
+| `cookbook/` | recipes that put live data on the tag: token tracker, solar tracker |
+| `examples/` | label renderers, dashboard specs and test images |
 | `hardware/` | gitignored. Reverse-engineering kit: ESP32 SWD probe sketch, NFC dump, reference photos. |
 | `NOTES.md` | reconnaissance log. Read "Where this stands" at the top; the rest is history, superseded hypotheses included |
 | `references/` | gitignored. APK, unpacked bundle, manual. Not needed by ports. |

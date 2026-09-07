@@ -1,4 +1,12 @@
 /** Codec implemented from docs/protocol.md; no vendor code dependencies. */
+/** Invalid SDK input or unsupported codec operation. */
+export class XteError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'XteError';
+  }
+}
+
 export const SERVICE_UUID = '00002760-08c2-11e1-9073-0e8ac72e1001';
 export const WRITE_UUID = '00002760-08c2-11e1-9073-0e8ac72e0001';
 export const NOTIFY_UUID = '00002760-08c2-11e1-9073-0e8ac72e0002';
@@ -7,7 +15,7 @@ export const PACKET_DATA_SIZE = 1211;
 
 function uint(value: number, max: number, name: string): void {
   if (!Number.isInteger(value) || value < 0 || value > max) {
-    throw new RangeError(`${name} must be an integer from 0 to ${max}`);
+    throw new XteError(`${name} must be an integer from 0 to ${max}`);
   }
 }
 function u32(value: number): Uint8Array {
@@ -31,27 +39,27 @@ function command(code: number, payload: Uint8Array = new Uint8Array()): Uint8Arr
 }
 export function allocate(totalSize: number, batch?: { offset: number; length: number }): Uint8Array {
   uint(totalSize, 0xffffffff, 'totalSize');
-  if (!totalSize) throw new RangeError('Container must not be empty');
+  if (!totalSize) throw new XteError('Container must not be empty');
   if (batch) {
     uint(batch.offset, totalSize, 'batch offset');
     uint(batch.length, BATCH_SIZE, 'batch length');
-    if (!batch.length || batch.offset + batch.length > totalSize) throw new RangeError('Invalid batch bounds');
+    if (!batch.length || batch.offset + batch.length > totalSize) throw new XteError('Invalid batch bounds');
     return command(1, join(u32(totalSize), u32(batch.offset), u32(batch.length)));
   }
-  if (totalSize > BATCH_SIZE) throw new RangeError('Large containers require batch allocation');
+  if (totalSize > BATCH_SIZE) throw new XteError('Large containers require batch allocation');
   return command(1, u32(totalSize));
 }
 export const verify = (): Uint8Array => command(2);
 export function refresh(screens = 1): Uint8Array {
   uint(screens, 255, 'screens');
-  if (!screens) throw new RangeError('At least one screen is required');
+  if (!screens) throw new XteError('At least one screen is required');
   return command(4, screens === 1 ? Uint8Array.of(0) : Uint8Array.of(3, 3));
 }
 /** Frame only; this SDK does not implement firmware updates. */
 export const applyFirmware = (): Uint8Array => join(command(5), Uint8Array.of(0));
 
 export function dataPackets(batch: Uint8Array): Uint8Array[] {
-  if (!batch.length || batch.length > BATCH_SIZE) throw new RangeError('Batch must contain 1–204800 bytes');
+  if (!batch.length || batch.length > BATCH_SIZE) throw new XteError('Batch must contain 1–204800 bytes');
   const total = Math.ceil(batch.length / PACKET_DATA_SIZE);
   return Array.from({ length: total }, (_, index) => {
     const data = batch.subarray(index * PACKET_DATA_SIZE, (index + 1) * PACKET_DATA_SIZE);
@@ -66,7 +74,7 @@ export function dataPackets(batch: Uint8Array): Uint8Array[] {
 }
 export function splitWrites(frame: Uint8Array, writeSize = 244): Uint8Array[] {
   uint(writeSize, 244, 'writeSize');
-  if (!writeSize) throw new RangeError('writeSize must be positive');
+  if (!writeSize) throw new XteError('writeSize must be positive');
   const writes: Uint8Array[] = [];
   for (let i = 0; i < frame.length; i += writeSize) writes.push(frame.slice(i, i + writeSize));
   return writes;
@@ -83,14 +91,14 @@ function validateRaster(image: Raster): void {
   uint(image.width, 0xffffffff, 'width'); uint(image.height, 0xffffffff, 'height');
   if (!image.width || !image.height || ![3, 4].includes(image.channels) ||
       image.data.length !== image.width * image.height * image.channels) {
-    throw new RangeError('Raster dimensions/channels must match its data length');
+    throw new XteError('Raster dimensions/channels must match its data length');
   }
 }
 export function packPixels(image: Raster, deviceNumber = 140): Uint8Array {
   validateRaster(image);
   uint(deviceNumber, 65535, 'deviceNumber');
-  if ([97, 102, 106, 109, 119, 122].includes(deviceNumber)) {
-    throw new Error(`Device ${deviceNumber} uses unsupported pixel packing`);
+  if (deviceNumber !== 140) {
+    throw new XteError(`Device ${deviceNumber} has unsupported or unknown pixel packing`);
   }
   const stride = Math.ceil(image.width / 4);
   const out = new Uint8Array(stride * image.height);
@@ -137,7 +145,7 @@ export interface ImageRecord {
 export interface EncodeOptions { compress?: boolean; deviceNumber?: number }
 /** Images must already have native buffer orientation and four-colour RGB values. */
 export function encodeContainer(images: readonly ImageRecord[], options: EncodeOptions = {}): Uint8Array {
-  if (!images.length || images.length > 255) throw new RangeError('Expected 1–255 images');
+  if (!images.length || images.length > 255) throw new XteError('Expected 1–255 images');
   const records = images.map(({ image, x = 0, y = 0 }) => {
     const raw = packPixels(image, options.deviceNumber);
     const rle = options.compress === false ? undefined : encodeRle(raw);
@@ -153,7 +161,7 @@ export function encodeContainer(images: readonly ImageRecord[], options: EncodeO
 }
 /** Prepare a 250×122 landscape PSJ-213 image, including its required CCW rotation. */
 export function encodePsj213(image: Raster, options: EncodeOptions = {}): Uint8Array {
-  if (image.width !== 250 || image.height !== 122) throw new RangeError('PSJ-213 source must be 250×122');
+  if (image.width !== 250 || image.height !== 122) throw new XteError('PSJ-213 source must be 250×122');
   return encodeContainer([{ image: rotateCounterClockwise(image) }], options);
 }
 
@@ -176,7 +184,7 @@ export function missingPackets(response: ResponseFrame, total: number): number[]
   uint(total, 255, 'packet count');
   const offset = response.command === 2 ? 7 :
     [4, 5].includes(response.command) && response.status === 0x68 ? 8 : -1;
-  if (offset < 0) throw new Error('Response does not contain a packet bitmap');
+  if (offset < 0) throw new XteError('Response does not contain a packet bitmap');
   const bitmap = response.bytes.subarray(offset);
   // Bits absent from the declared frame are missing too; never use padding.
   return Array.from({ length: total }, (_, i) => i).filter(i => !((bitmap[i >> 3] ?? 0) & (0x80 >> (i % 8))));
@@ -192,6 +200,6 @@ export function parseAdvertisement(data: Uint8Array) {
   };
 }
 export function addressFromName(name: string): string {
-  if (!/^[\da-f]{12}$/i.test(name)) throw new Error('Label name must be twelve hex digits');
+  if (!/^[\da-f]{12}$/i.test(name)) throw new XteError('Label name must be twelve hex digits');
   return name.match(/../g)!.reverse().join(':').toUpperCase();
 }

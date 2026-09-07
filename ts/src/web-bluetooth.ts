@@ -1,4 +1,4 @@
-import { SERVICE_UUID } from './codec.js';
+import { SERVICE_UUID, XteError } from './codec.js';
 import type { BleTransport } from './upload.js';
 
 // Minimal structural interfaces keep the SDK independent of ambient Web Bluetooth
@@ -32,7 +32,7 @@ interface BrowserBluetooth {
 export async function requestWebBluetoothTransport(name?: string): Promise<WebBluetoothTransport> {
   const bluetooth = (globalThis.navigator as Navigator & { bluetooth?: BrowserBluetooth })?.bluetooth;
   if (!bluetooth) throw new Error('Web Bluetooth is unavailable in this browser');
-  if (name !== undefined && !/^[\da-f]{12}$/i.test(name)) throw new Error('Expected a twelve-digit label name');
+  if (name !== undefined && !/^[\da-f]{12}$/i.test(name)) throw new XteError('Expected a twelve-digit label name');
   const device = await bluetooth.requestDevice({
     filters: name ? [{ name: name.toUpperCase() }] : [{ manufacturerData: [{ companyIdentifier: 0x5258 }] }],
     optionalServices: [SERVICE_UUID],
@@ -43,7 +43,7 @@ export async function requestWebBluetoothTransport(name?: string): Promise<WebBl
 export class WebBluetoothTransport implements BleTransport {
   /** Web Bluetooth cannot request/read the negotiated MTU. Default to safe 20-byte writes. */
   constructor(readonly device: WebBluetoothDevice, readonly writeSize = 20) {
-    if (!Number.isInteger(writeSize) || writeSize < 1 || writeSize > 244) throw new RangeError('Invalid write size');
+    if (!Number.isInteger(writeSize) || writeSize < 1 || writeSize > 244) throw new XteError('Invalid write size');
   }
   private writer?: WebBluetoothCharacteristic;
   private notify?: WebBluetoothCharacteristic;
@@ -93,7 +93,7 @@ export class WebBluetoothTransport implements BleTransport {
   async write(data: Uint8Array): Promise<void> {
     const writer = this.writer;
     if (!writer || this.connecting) throw new Error('Transport is not connected');
-    if (data.length > this.writeSize) throw new RangeError('BLE write exceeds configured size');
+    if (data.length > this.writeSize) throw new XteError('BLE write exceeds configured size');
     const buffer = new Uint8Array(data).buffer;
     if (writer.properties.writeWithoutResponse) await writer.writeValueWithoutResponse(buffer);
     else await writer.writeValueWithResponse(buffer);

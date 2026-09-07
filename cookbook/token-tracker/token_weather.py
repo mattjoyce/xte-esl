@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Token weather: this week's LLM token usage from ccusage, as a tag dashboard.
 
-    ./examples/token_weather.py --push 9F:1D:00:0B:33:36
-    ./examples/token_weather.py --budget 500M -o tokens.png --scale 3     # preview only
-    */15 * * * *  cd ~/Projects/xte-esl && .venv/bin/python examples/token_weather.py --push 9F:1D:00:0B:33:36
+    ./cookbook/token-tracker/token_weather.py --push 9F:1D:00:0B:33:36
+    ./cookbook/token-tracker/token_weather.py --budget 500M -o tokens.png --scale 3     # preview only
+    */15 * * * *  cd ~/Projects/xte-esl && .venv/bin/python cookbook/token-tracker/token_weather.py --push 9F:1D:00:0B:33:36 --if-changed
 
 Reads `bunx ccusage daily --json --offline` for Monday to today, builds a
 dashboard spec and hands it to python/dashboard.py. Nothing is stored; the
@@ -23,8 +23,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
-DASHBOARD = HERE.parent / "python" / "dashboard.py"
+DASHBOARD = Path(__file__).resolve().parents[2] / "python" / "dashboard.py"
 
 
 def compact(n: float) -> str:
@@ -62,7 +61,7 @@ def build_spec(data: dict, monday: dt.date, today: dt.date, budget: float | None
     today_idx = (today - monday).days
     spec = {
         "title": f"Tokens wk {monday.isocalendar()[1]}",
-        "updated": today.strftime("%a %H:%M") if isinstance(today, dt.datetime) else dt.datetime.now().strftime("%a %H:%M"),
+        "updated": today.strftime("%a %-d %b"),   # date, not time, so --if-changed can skip identical pushes
         "hero": {"label": "Week to date", "value": compact(week_total),
                  "delta": f"${cost:,.0f} est. · {compact(out_tokens)} out", "alert": hit < 50 and week_total > 0},
         "chart": {"type": "columns", "label": f"Daily, M · {hit:.0f}% cached",
@@ -80,6 +79,7 @@ def main() -> int:
     ap.add_argument("-o", "--out", default="tokens.png")
     ap.add_argument("--scale", type=int, default=1)
     ap.add_argument("--push", metavar="ADDRESS")
+    ap.add_argument("--if-changed", action="store_true", help="skip the push when the image is unchanged")
     ap.add_argument("--spec-only", action="store_true", help="print the spec JSON and exit")
     a = ap.parse_args()
 
@@ -92,6 +92,8 @@ def main() -> int:
     cmd = [sys.executable, str(DASHBOARD), "-", "-o", a.out, "--scale", str(a.scale)]
     if a.push:
         cmd += ["--push", a.push]
+    if a.if_changed:
+        cmd.append("--if-changed")
     return subprocess.run(cmd, input=json.dumps(spec), text=True).returncode
 
 

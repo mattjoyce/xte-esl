@@ -18,6 +18,8 @@ flickers for about 20 seconds: that is the refresh, not a failure.
 
 import argparse
 import asyncio
+import hashlib
+import os
 import sys
 import time
 
@@ -175,6 +177,9 @@ def main() -> int:
     ap.add_argument("--rotate", type=int, default=90, choices=[0, 90, 180, 270],
                     help="counter-clockwise rotation into the native buffer. 90 is verified for the PSJ-213; "
                          "other values are for untested tags")
+    ap.add_argument("--if-changed", action="store_true",
+                    help="skip the push if this exact image was the last one pushed to this tag "
+                         "(hash kept in ~/.cache/xte-esl/)")
     ap.add_argument("--dry-run", action="store_true", help="print frames, do not connect")
     a = ap.parse_args()
 
@@ -189,11 +194,27 @@ def main() -> int:
             print(f"pkt {i:3d}", p[:12].hex(" "), f"... ({len(p)} B, {len(xte.ble_chunks(p))} writes)")
         print("refresh", xte.cmd_refresh(a.multi_screen).hex(" "))
         return 0
+    digest = hashlib.sha256(payload).hexdigest()
+    state = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "xte-esl",
+                         a.address.replace(":", "").lower() + ".sha256")
+    if a.if_changed:
+        try:
+            if open(state).read().strip() == digest:
+                print("unchanged since last push, skipping")
+                return 0
+        except OSError:
+            pass
     try:
         asyncio.run(push(a.address, payload, a.interval, a.multi_screen))
     except PushError as e:
         print(f"{stamp()} FAILED: {e}", file=sys.stderr)
         return 1
+    try:
+        os.makedirs(os.path.dirname(state), exist_ok=True)
+        with open(state, "w") as f:
+            f.write(digest)
+    except OSError:
+        pass
     return 0
 
 
