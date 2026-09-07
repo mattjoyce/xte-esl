@@ -51,8 +51,16 @@ export async function uploadContainer(
   // Own a snapshot so callers cannot change an image halfway through an upload.
   const bytes = container.slice();
   active.add(transport);
-  let fail!: (reason: unknown) => void;
-  const failed = new Promise<never>((_, reject) => { fail = reject; });
+  let rejectFailure!: (reason: unknown) => void;
+  let closed = false;
+  let failure: unknown;
+  const failed = new Promise<never>((_, reject) => { rejectFailure = reject; });
+  const fail = (reason: unknown) => {
+    if (closed) return;
+    closed = true;
+    failure = reason;
+    rejectFailure(reason);
+  };
   void failed.catch(() => {});
   const abort = () => fail(options.signal?.reason ?? new Error('Upload cancelled'));
   options.signal?.addEventListener('abort', abort, { once: true });
@@ -75,6 +83,8 @@ export async function uploadContainer(
   }
   async function send(frame: Uint8Array): Promise<void> {
     for (const write of splitWrites(frame, transport.writeSize)) {
+      // Do not start another write after a synchronous disconnect/abort callback.
+      if (closed) throw failure;
       await bounded(transport.write(write));
       if (delay) await pause(delay);
     }
@@ -96,7 +106,10 @@ export async function uploadContainer(
         if (final && reply.status === 0xff) return;
         if (final && reply.status !== 0x68) throw new Error(`Refresh failed: status 0x${reply.status.toString(16)}`);
         const missing = missingPackets(reply, packets.length);
-        if (!final && !missing.length) return;
+        if (!missing.length) {
+          if (final) throw new Error('Refresh reports missing packets but its bitmap is complete');
+          return;
+        }
         if (round === 3) throw new Error('Packets still missing after 3 patch rounds');
         await sendSelected(packets, missing);
         await pause(100);

@@ -21,6 +21,8 @@ class Tag implements BleTransport {
   packetCount = 0;
   patchRefresh = 0;
   patchVerify = 0;
+  shortBitmap = false;
+  completePatchBitmap = false;
   allocStatus = 255;
   silent = false;
   malformed = false;
@@ -52,8 +54,9 @@ class Tag implements BleTransport {
     else {
       const bitmap = Array(Math.ceil(this.packetCount / 8)).fill(255);
       const patch = command === 2 ? this.patchVerify-- > 0 : this.patchRefresh-- > 0;
-      if (patch) bitmap[0] &= ~0x20; // Packet 2 missing.
-      payload = command === 2 ? bitmap : patch ? [0x68, ...bitmap] : [255];
+      if (patch && !this.completePatchBitmap) bitmap[0] &= ~0x20; // Packet 2 missing.
+      const reported = patch && this.shortBitmap ? bitmap.slice(0, 1) : bitmap;
+      payload = command === 2 ? reported : patch ? [0x68, ...reported] : [255];
     }
     const reply = response(command, payload);
     if (this.malformed) reply[5] ^= 1;
@@ -94,6 +97,22 @@ test('allocation failure stops before data and disconnects', async () => {
   await expect(uploadContainer(tag, container(), fast)).rejects.toThrow('Allocation failed');
   expect(tag.frames.length).toBe(1); expect(tag.disconnected).toBe(1);
 });
+test('short verify bitmaps retransmit every packet without a reported bit', async () => {
+  const tag = new Tag(); tag.writeSize = 244; tag.patchVerify = 1; tag.shortBitmap = true;
+  await uploadContainer(tag, container(true), fast);
+  const firstVerify = tag.frames.findIndex(f => f[3] === 1 && f[6] === 2);
+  const nextVerify = tag.frames.findIndex((f, i) => i > firstVerify && f[3] === 1 && f[6] === 2);
+  expect(tag.frames.slice(firstVerify + 1, nextVerify).map(f => f[8])).toEqual([
+    2, ...Array.from({ length: 162 }, (_, i) => i + 8),
+  ]);
+  expect(tag.disconnected).toBe(1);
+});
+test('refresh rejects a missing-packet status with a complete bitmap immediately', async () => {
+  const tag = new Tag(); tag.patchRefresh = 1; tag.completePatchBitmap = true;
+  await expect(uploadContainer(tag, container(), fast)).rejects.toThrow('bitmap is complete');
+  expect(tag.frames.filter(f => f[3] === 1 && f[6] === 4).length).toBe(1);
+  expect(tag.disconnected).toBe(1);
+});
 test('recovery is limited to three retransmissions', async () => {
   const tag = new Tag(); tag.patchRefresh = 20;
   await expect(uploadContainer(tag, container(), fast)).rejects.toThrow('3 patch rounds');
@@ -110,6 +129,20 @@ test('missing/invalid replies and hung writes time out with cleanup', async () =
 test('unexpected disconnect interrupts the upload', async () => {
   const tag = new Tag(); tag.disconnectOnData = true;
   await expect(uploadContainer(tag, container(), fast)).rejects.toThrow('disconnected');
+  expect(tag.disconnected).toBe(1);
+  expect(tag.input).toEqual([]);
+  expect(tag.frames.filter(f => f[3] === 2).length).toBe(1);
+});
+test('synchronous abort during a write prevents all subsequent writes', async () => {
+  const tag = new Tag(); const controller = new AbortController();
+  const write = tag.write.bind(tag);
+  tag.write = async data => {
+    await write(data);
+    if (tag.frames.some(f => f[3] === 2)) controller.abort(new Error('stop now'));
+  };
+  await expect(uploadContainer(tag, container(), { ...fast, signal: controller.signal })).rejects.toThrow('stop now');
+  expect(tag.input).toEqual([]);
+  expect(tag.frames.filter(f => f[3] === 2).length).toBe(1);
   expect(tag.disconnected).toBe(1);
 });
 test('abort and concurrent use are handled without disconnecting another upload', async () => {

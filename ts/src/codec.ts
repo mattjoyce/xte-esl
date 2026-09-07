@@ -178,8 +178,8 @@ export function missingPackets(response: ResponseFrame, total: number): number[]
     [4, 5].includes(response.command) && response.status === 0x68 ? 8 : -1;
   if (offset < 0) throw new Error('Response does not contain a packet bitmap');
   const bitmap = response.bytes.subarray(offset);
-  if (bitmap.length * 8 < total) throw new Error('Truncated packet bitmap');
-  return Array.from({ length: total }, (_, i) => i).filter(i => !(bitmap[i >> 3] & (0x80 >> (i % 8))));
+  // Bits absent from the declared frame are missing too; never use padding.
+  return Array.from({ length: total }, (_, i) => i).filter(i => !((bitmap[i >> 3] ?? 0) & (0x80 >> (i % 8))));
 }
 export function parseAdvertisement(data: Uint8Array) {
   if (data.length < 15 || data[0] !== 0x58 || ![0x54, 0x52].includes(data[1]) ||

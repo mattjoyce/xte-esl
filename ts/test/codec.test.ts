@@ -48,7 +48,9 @@ test('observed responses, notification padding, checksums and bitmap offsets', (
   expect(sdk.parseResponse(bytes('58544502080304ff'))).toBeUndefined();
   expect(sdk.missingPackets(sdk.parseResponse(bytes('5854450409490468dd'))!, 8)).toEqual([2,6]);
   expect(sdk.missingPackets(sdk.parseResponse(bytes('5854450408df02dd'))!, 8)).toEqual([2,6]);
-  expect(() => sdk.missingPackets(sdk.parseResponse(bytes('5854450408df02dd'))!, 9)).toThrow('Truncated');
+  expect(sdk.missingPackets(sdk.parseResponse(bytes('5854450408df02dd'))!, 9)).toEqual([2,6,8]);
+  expect(sdk.missingPackets(sdk.parseResponse(bytes('5854450409490468ddffff'))!, 10)).toEqual([2,6,8,9]);
+  expect(sdk.missingPackets(sdk.parseResponse(bytes('58544504086c0468'))!, 3)).toEqual([0,1,2]);
 });
 test('advertisement decoding and input bounds', () => {
   expect(sdk.parseAdvertisement(bytes('5852fd024002008c63060102ffff1c'))).toMatchObject({

@@ -159,14 +159,17 @@ def columns(d, box: Box, spec: dict) -> None:
     hi = max(values) or 1.0
     lo = min(0.0, min(values))
     span = (hi - lo) or 1.0
-    base_y = plot.y2 - round((0 - lo) / span * (plot.h - 12))
+    label_room = 10                                   # one row above the tallest bar for its value
+    bar_h = max(1, plot.h - label_room)
+    scale = lambda v: round((v - lo) / span * (bar_h - 1))
+    base_y = plot.y2 - scale(0)
     highlight = spec.get("highlight")
     alert_above = spec.get("alert_above")
     fl = font(REGULAR, 8)
     extreme = max(range(n), key=lambda i: values[i])
     for i, v in enumerate(values):
         x = x0 + i * (bw + gap)
-        top = plot.y2 - 11 - round((v - lo) / span * (plot.h - 12))
+        top = plot.y2 - scale(v)
         ink = BLACK
         if alert_above is not None and v > alert_above:
             ink = RED
@@ -178,11 +181,11 @@ def columns(d, box: Box, spec: dict) -> None:
                 d.rectangle([x, top, x + bw - 1, base_y], outline=BLACK, width=1)
         else:
             d.rectangle([x, base_y, x + bw - 1, top], fill=ink)
-        if i == extreme and bw >= 6:                     # direct-label the extreme only
+        if i == extreme and bw >= 6 and top - label_room >= plot.y:   # direct-label the extreme only
             s = f"{v:g}"
             tw = d.textlength(s, font=fl)
             lx = min(max(plot.x, x + (bw - tw) / 2), plot.x2 - tw)
-            d.text((lx, top - 10), s, fill=BLACK, font=fl)
+            d.text((lx, top - label_room), s, fill=BLACK, font=fl)
     d.line([plot.x, base_y, plot.x2, base_y], fill=BLACK, width=1)
     for i, t in ticks:
         if 0 <= int(i) < n:

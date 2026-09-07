@@ -54,6 +54,12 @@ draw that value in red; leave everything else black. Push a dashboard no
 more often than every few minutes: each refresh is a 20-second full-panel
 waveform.
 
+This week's token usage (from ccusage, needs bun):
+
+```sh
+.venv/bin/python examples/token_weather.py --budget 500M --push 9F:1D:00:0B:33:36
+```
+
 An existing image (resized to 250x122; add `--no-dither` for flat graphics,
 omit it for photos):
 
