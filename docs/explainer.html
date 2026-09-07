@@ -1,0 +1,620 @@
+<title>The XTE Field Guide</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Public+Sans:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --paper:#E6E8E5; --paper-2:#DCDFDB; --paper-3:#CDD1CC;
+  --ink:#16181B; --ink-2:#4A4E53; --ink-3:#80858B;
+  --red:#C1301C; --yellow:#E0B000; --yellow-ink:#7A5E00;
+  --line:#B9BDB8; --code-bg:#F2F3F1;
+  --white-swatch:#FFFFFF;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#1A1C1F; --paper-2:#23262A; --paper-3:#2E3237;
+    --ink:#E6E8E5; --ink-2:#B4B8BC; --ink-3:#83888E;
+    --red:#E25640; --yellow:#F0C43A; --yellow-ink:#F0C43A;
+    --line:#3A3E44; --code-bg:#111214;
+    --white-swatch:#F4F4F4;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#1A1C1F; --paper-2:#23262A; --paper-3:#2E3237;
+  --ink:#E6E8E5; --ink-2:#B4B8BC; --ink-3:#83888E;
+  --red:#E25640; --yellow:#F0C43A; --yellow-ink:#F0C43A;
+  --line:#3A3E44; --code-bg:#111214;
+  --white-swatch:#F4F4F4;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.6}
+a{color:inherit;text-decoration-color:var(--red);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+h1,h2,h3{font-family:"Bricolage Grotesque","Public Sans",sans-serif;font-weight:700;line-height:1.1;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.4rem,6vw,4.2rem);letter-spacing:-.02em}
+h2{font-size:clamp(1.6rem,3vw,2.2rem);margin-top:3.5rem;margin-bottom:.8rem;letter-spacing:-.01em}
+h3{font-size:1.15rem;margin-top:2rem;margin-bottom:.5rem}
+p{margin:0 0 1rem;max-width:68ch}
+ul,ol{max-width:68ch;padding-left:1.4rem}
+li{margin-bottom:.35rem}
+code,pre,.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+code{font-size:.9em;background:var(--code-bg);padding:.1em .35em;border-radius:3px}
+pre{background:var(--code-bg);border:1px solid var(--line);padding:.9rem 1.1rem;overflow-x:auto;font-size:.85rem;line-height:1.5;margin:0 0 1.2rem;border-radius:4px}
+pre code{background:none;padding:0}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.layout{display:grid;grid-template-columns:1fr;gap:0;max-width:1180px;margin:0 auto;padding:0 1.25rem}
+@media(min-width:1000px){.layout{grid-template-columns:220px minmax(0,1fr);gap:3rem}}
+nav.toc{display:none}
+@media(min-width:1000px){
+  nav.toc{display:block;position:sticky;top:1.5rem;align-self:start;padding-top:2.2rem}
+  nav.toc ol{list-style:none;padding:0;margin:0;font-size:.85rem;line-height:1.35}
+  nav.toc li{margin:0 0 .55rem}
+  nav.toc a{text-decoration:none;color:var(--ink-2)}
+  nav.toc a:hover{color:var(--ink);text-decoration:underline}
+  nav.toc .eyebrow{display:block;margin-bottom:.9rem}
+}
+main{padding:2rem 0 6rem;min-width:0}
+header.hero{padding:2.5rem 0 1.5rem;border-bottom:1px solid var(--line);margin-bottom:2rem}
+header.hero p.lede{font-size:1.15rem;max-width:60ch;color:var(--ink-2);margin-top:1rem}
+.inks{display:inline-flex;gap:6px;vertical-align:middle;margin-left:.5rem}
+.inks i{display:inline-block;width:14px;height:14px;border:1px solid var(--line)}
+/* panel simulator */
+.sim{display:grid;grid-template-columns:1fr;gap:1rem;margin:1.5rem 0 0;align-items:start}
+@media(min-width:760px){.sim{grid-template-columns:minmax(0,1fr) 260px}}
+.tag{background:#EDEFF2;border-radius:14px;padding:22px 26px;box-shadow:inset 0 0 0 1px #c7cbd1, 0 10px 30px -18px #000;max-width:560px}
+.tag canvas{width:100%;height:auto;display:block;background:#DADCD8;image-rendering:pixelated;border:6px solid #C9CDCB}
+.sim-side{display:flex;flex-direction:column;gap:.8rem}
+.phase{font-family:"IBM Plex Mono",monospace;font-size:.85rem;color:var(--ink-2);min-height:3.2em}
+.phase b{color:var(--ink);display:block}
+.bar{height:6px;background:var(--paper-3);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--red);transition:width .1s linear}
+button{font:inherit;font-weight:600;background:var(--ink);color:var(--paper);border:0;padding:.55rem 1rem;border-radius:4px;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.small{font-size:.85rem;color:var(--ink-2)}
+/* byte rails */
+.rail{display:flex;gap:3px;overflow-x:auto;padding:.4rem 0 .8rem;margin:.8rem 0 .4rem}
+.rail .b{flex:0 0 auto;min-width:44px;text-align:center;border:1px solid var(--line);border-radius:3px;padding:.35rem .3rem .3rem;background:var(--code-bg)}
+.rail .b .v{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:.9rem;display:block}
+.rail .b .l{display:block;font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-top:.15rem;white-space:nowrap}
+.rail .b.magic{border-color:var(--ink);background:var(--paper-2)}
+.rail .b.type{border-color:var(--ink-2)}
+.rail .b.len{border-bottom:3px solid var(--yellow)}
+.rail .b.ck{border-bottom:3px solid var(--red)}
+.rail .b.cmd{border-bottom:3px solid var(--ink)}
+.rail .b.pay{border-style:dashed}
+.legend{display:flex;flex-wrap:wrap;gap:1rem;font-size:.8rem;color:var(--ink-2);margin-bottom:1rem}
+.legend span::before{content:"";display:inline-block;width:18px;height:4px;margin-right:.4rem;vertical-align:middle;border-radius:2px}
+.legend .y::before{background:var(--yellow)} .legend .r::before{background:var(--red)} .legend .k::before{background:var(--ink)}
+table{border-collapse:collapse;width:100%;max-width:820px;font-size:.92rem;margin:.6rem 0 1.4rem}
+th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+td.mono,th.mono{font-family:"IBM Plex Mono",monospace;font-size:.85rem;white-space:nowrap}
+.tablewrap{overflow-x:auto}
+/* callouts */
+.note{border-left:3px solid var(--yellow);padding:.6rem 1rem;background:var(--paper-2);margin:1.2rem 0;max-width:68ch;border-radius:0 4px 4px 0}
+.note.red{border-left-color:var(--red)}
+.note p:last-child{margin-bottom:0}
+/* widgets */
+.widget{border:1px solid var(--line);border-radius:6px;padding:1rem 1.1rem;margin:1.2rem 0;background:var(--paper-2);max-width:820px}
+.widget label{display:block;font-size:.8rem;color:var(--ink-2);margin-bottom:.3rem}
+.widget input[type=text]{font-family:"IBM Plex Mono",monospace;font-size:.9rem;width:100%;padding:.5rem .6rem;border:1px solid var(--line);border-radius:4px;background:var(--code-bg);color:var(--ink)}
+.widget input[type=range]{width:100%;accent-color:var(--red)}
+.row{display:flex;gap:1rem;flex-wrap:wrap;align-items:end}
+.row>*{flex:1 1 200px}
+.out{font-family:"IBM Plex Mono",monospace;font-size:.88rem;white-space:pre-wrap;word-break:break-all;margin-top:.6rem;line-height:1.6}
+.pix{display:inline-grid;grid-template-columns:repeat(4,44px);gap:4px;margin:.4rem 0}
+.pix button{width:44px;height:44px;padding:0;border:2px solid var(--line);border-radius:4px}
+.stride{display:grid;grid-template-columns:1fr;gap:1rem}
+@media(min-width:760px){.stride{grid-template-columns:minmax(0,1fr) 220px}}
+.stride canvas{width:100%;height:auto;image-rendering:pixelated;border:6px solid #C9CDCB;background:#DADCD8;display:block;max-width:500px}
+/* sequence */
+.seq{overflow-x:auto;margin:1rem 0 1.5rem}
+.seq svg{display:block;min-width:640px;max-width:820px;font-family:"IBM Plex Mono",monospace;font-size:12px}
+.seq text{fill:var(--ink)}
+.seq .lane{stroke:var(--line);stroke-dasharray:3 4}
+.seq .h2t{stroke:var(--ink);marker-end:url(#ah)}
+.seq .t2h{stroke:var(--red);marker-end:url(#ar)}
+.seq .t{fill:var(--ink-3)}
+.seq .hd{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:14px}
+.swatch{display:inline-block;width:.9em;height:.9em;border:1px solid var(--line);vertical-align:-.1em;margin-right:.3em}
+footer{margin-top:4rem;padding-top:1.5rem;border-top:1px solid var(--line);font-size:.85rem;color:var(--ink-2)}
+kbd{font-family:"IBM Plex Mono",monospace;font-size:.85em;border:1px solid var(--line);border-bottom-width:2px;padding:0 .3em;border-radius:3px}
+</style>
+
+<div class="layout">
+<nav class="toc" aria-label="Contents">
+  <span class="eyebrow">Contents</span>
+  <ol>
+    <li><a href="#tag">1. The tag</a></li>
+    <li><a href="#ink">2. How e-ink refreshes</a></li>
+    <li><a href="#geometry">3. Panel geometry</a></li>
+    <li><a href="#pipe">4. The BLE pipe</a></li>
+    <li><a href="#advert">5. The advertisement</a></li>
+    <li><a href="#frames">6. Frames</a></li>
+    <li><a href="#container">7. The image container</a></li>
+    <li><a href="#handshake">8. The handshake</a></li>
+    <li><a href="#patch">9. Lost packets</a></li>
+    <li><a href="#build">10. Build a frame</a></li>
+    <li><a href="#history">11. How it was found</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <span class="eyebrow">xte-esl · docs</span>
+  <h1>The XTE Field Guide</h1>
+  <p class="lede">Everything you need to drive a four-colour Bluetooth shelf label from your own code: how the ink moves, how the bytes are laid out, how the handshake runs, and why the screen flickers like that.
+    <span class="inks" aria-label="black white red yellow"><i style="background:#16181B"></i><i style="background:#fff"></i><i style="background:#C1301C"></i><i style="background:#E0B000"></i></span>
+  </p>
+
+  <div class="sim">
+    <div class="tag">
+      <canvas id="panel" width="250" height="122" aria-label="Simulated 2.13 inch four-colour e-paper panel"></canvas>
+    </div>
+    <div class="sim-side">
+      <div class="phase" id="phase"><b>At rest</b>Press refresh to watch a four-colour waveform. Time is compressed about 4×.</div>
+      <div class="bar"><i id="bar"></i></div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button id="go">Refresh panel</button>
+        <button class="ghost" id="swap">Next image</button>
+      </div>
+      <p class="small">This is a model of what the real panel does, not a recording. The real PSJ-213 takes about 20 seconds and acknowledges over BLE 60 ms in, long before the ink settles.</p>
+    </div>
+  </div>
+</header>
+
+<section id="tag">
+<h2>1. The tag</h2>
+<p>The Poshiji PSJ-213 is a 2.13-inch electronic shelf label with a four-ink panel: black, white, red and yellow. It has a Bluetooth Low Energy radio, an NFC tag, two CR2450 cells in parallel, and no documentation. "Poshiji" is the reseller's brand. The firmware, the advertisement and the vendor SDK all call the protocol something else, and that name is stamped in every frame: <code>XTE</code>.</p>
+<p>The same firmware ships in a family of sizes. The vendor's manual lists them:</p>
+<div class="tablewrap"><table>
+<tr><th>Size</th><th>Model</th><th>Nominal px</th><th>Native buffer</th></tr>
+<tr><td>1.54"</td><td class="mono">ESL-15BWRY</td><td class="mono">200 × 200</td><td class="mono">200 × 200</td></tr>
+<tr><td>2.13"</td><td class="mono">ESL-21BWRY</td><td class="mono">250 × 128</td><td class="mono">122 × 250, verified</td></tr>
+<tr><td>2.66"</td><td class="mono">ESL-26BWRY</td><td class="mono">296 × 152</td><td class="mono">not tested</td></tr>
+<tr><td>2.9"</td><td class="mono">ESL-29BWRY</td><td class="mono">296 × 128</td><td class="mono">not tested</td></tr>
+<tr><td>3.5"</td><td class="mono">ESL-35BWRY</td><td class="mono">384 × 184</td><td class="mono">not tested</td></tr>
+<tr><td>3.7"</td><td class="mono">ESL-37BWRY</td><td class="mono">416 × 240</td><td class="mono">not tested</td></tr>
+</table></div>
+<p>The tag tells you what it is three ways. Its NFC record reads <code>36330B001D9F,140,122,250,BWRY,0,0,0,0,CN</code>: the reversed MAC, a type code of 140, the two panel dimensions, and the ink set. Its factory screen prints <code>2.13 H:2 V:4.0.2</code>. Its advertisement carries the same numbers in binary. Section 5 decodes it.</p>
+</section>
+
+<section id="ink">
+<h2>2. How e-ink refreshes, and why it flickers</h2>
+<p>An electrophoretic display has no frame buffer on the glass. Each pixel is a microcapsule of clear fluid holding pigment particles, and the picture is wherever the particles physically are. To change a pixel the controller applies a voltage across the capsule and the particles drift. Nothing measures where they end up. The controller runs a scripted sequence of voltage pulses, called a waveform, that is long enough for the particles to reliably arrive.</p>
+<h3>Four pigments, one field</h3>
+<p>A monochrome panel is simple: white particles carry one charge, black the other, so one field direction pulls white to the surface and the reverse pulls black. A four-colour panel adds red and yellow pigments with different charge magnitudes and mobilities. There is no voltage that means "yellow". The waveform has to first scramble everything to a known state, then sort the pigments by how fast they respond so the wanted one ends on top.</p>
+<h3>What you see</h3>
+<ul>
+  <li><strong>Fast black-white flashes first.</strong> These are clearing inversions. Black and white are the most mobile pigments and respond to short pulses. Rapid reversals shake loose particles stuck from the previous image, which would otherwise leave ghosts.</li>
+  <li><strong>Slower pulses after.</strong> The colour-sorting phases hold the field longer per step because the colour pigments have less charge or more drag. Some phases use a lower voltage or a duty-cycle pattern, which reads as a slower pulse.</li>
+  <li><strong>Regions out of step.</strong> The waveform lookup is per pixel per frame, keyed on the previous and next colour. Two areas going to the same target from different starts run different branches of the table, so they pulse at different rhythms even on a solid image.</li>
+  <li><strong>Temperature.</strong> The fluid thickens when cold. The controller picks a longer waveform from a temperature-indexed table, so the last advertised byte is very likely the sensor reading the firmware uses to select it.</li>
+</ul>
+<div class="note"><p>The tag acknowledges the refresh command about 60 ms after receiving it. That means "waveform started", not "image visible". Expect 15 to 25 seconds of visible churn afterwards. This is normal and the vendor's own app looks identical.</p></div>
+</section>
+
+<section id="geometry">
+<h2>3. Panel geometry, and the shear that taught it</h2>
+<p>You look at the PSJ-213 in landscape, 250 wide by 122 high. The panel controller does not. Its source lines run along the short edge, so the native buffer is 122 columns by 250 rows, portrait. Each row is 122 pixels padded to 124, which at two bits per pixel is 31 bytes. The whole buffer is 7750 bytes.</p>
+<p>Send it landscape rows and every row lands 63 bytes on from the last, but the panel reads them 31 bytes at a time. Each displayed line starts one byte later than it should, so vertical edges become diagonals. The slider below reproduces the effect. The two wrong values were the two photos taken during reverse-engineering; the slopes are how the correct stride was solved.</p>
+<div class="widget stride">
+  <canvas id="stride" width="250" height="122" aria-label="Stride demonstration"></canvas>
+  <div>
+    <label for="strideRange">Host sends rows of <b id="strideVal" class="mono">31</b> bytes</label>
+    <input type="range" id="strideRange" min="24" max="64" value="31">
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.5rem">
+      <button class="ghost" data-stride="63">63 · landscape</button>
+      <button class="ghost" data-stride="32">32 · padded to 128</button>
+      <button class="ghost" data-stride="31">31 · correct</button>
+    </div>
+    <p class="small" style="margin-top:.8rem">The panel always reads 31-byte rows. Slope in pixels per column equals 4 × (sent − 31), wrapping every 124 pixels.</p>
+  </div>
+</div>
+<h3>The recipe</h3>
+<ol>
+  <li>Draw the label in landscape, 250 × 122, using only the four exact colours.</li>
+  <li>Rotate it 90° counter-clockwise. It is now 122 × 250.</li>
+  <li>Pack rows of 122 pixels, padded to 124, four pixels per byte.</li>
+  <li>Buffer row 0 is the right-hand edge as viewed. Byte 0 of each row is the top. No vertical flip.</li>
+</ol>
+</section>
+
+<section id="pipe">
+<h2>4. The BLE pipe</h2>
+<p>The tag exposes one vendor service with two characteristics: a write-without-response pipe in, and a notify pipe out. There is no framing at the GATT level. Whatever you write appears at the firmware as a byte stream, and the firmware finds frame boundaries by the <code>XTE</code> magic and length field.</p>
+<div class="tablewrap"><table>
+<tr><th>Item</th><th>Value</th></tr>
+<tr><td>Service</td><td class="mono">00002760-08C2-11E1-9073-0E8AC72E1001</td></tr>
+<tr><td>Write (host → tag)</td><td class="mono">…0E8AC72E0001 · write-without-response</td></tr>
+<tr><td>Notify (tag → host)</td><td class="mono">…0E8AC72E0002 · notify</td></tr>
+<tr><td>MTU</td><td>request 247. BlueZ negotiates 517. The default 23 also works, slowly.</td></tr>
+<tr><td>Write size</td><td>244 bytes maximum, 5 ms between writes</td></tr>
+<tr><td>Pairing</td><td>none. Open connection, no bonding.</td></tr>
+<tr><td>Command timeout</td><td>5 s for any response</td></tr>
+</table></div>
+<p>The UUID base <code>xxxx2760-08C2-11E1-9073-0E8AC72Exxxx</code> is the Arm Cordio BLE stack's proprietary data-transfer sample. It identifies the software stack inside the chip, not the product, which is why searching for it finds Mi Band firmware and not shelf labels.</p>
+</section>
+
+<section id="advert">
+<h2>5. The advertisement</h2>
+<p>The tag broadcasts under manufacturer ID <code>0x5258</code>, which is not a registered company. On the wire those two bytes are <code>58 52</code>, ASCII <code>XR</code>. Read the manufacturer data with the company ID included and it decodes like this. The values shown are from a real PSJ-213.</p>
+<div class="rail" aria-label="Advertisement bytes">
+  <div class="b magic"><span class="v">58</span><span class="l">'X'</span></div>
+  <div class="b magic"><span class="v">52</span><span class="l">'R'</span></div>
+  <div class="b type"><span class="v">FD</span><span class="l">record</span></div>
+  <div class="b"><span class="v">02</span><span class="l">hw rev</span></div>
+  <div class="b"><span class="v">40</span><span class="l">fw 4.0</span></div>
+  <div class="b"><span class="v">02</span><span class="l">fw .2</span></div>
+  <div class="b"><span class="v">00</span><span class="l">devnum hi</span></div>
+  <div class="b"><span class="v">8C</span><span class="l">devnum lo</span></div>
+  <div class="b"><span class="v">63</span><span class="l">battery %</span></div>
+  <div class="b"><span class="v">06</span><span class="l">chip·power</span></div>
+  <div class="b pay"><span class="v">01</span><span class="l">?</span></div>
+  <div class="b pay"><span class="v">02</span><span class="l">?</span></div>
+  <div class="b pay"><span class="v">FF</span><span class="l">?</span></div>
+  <div class="b pay"><span class="v">FF</span><span class="l">?</span></div>
+  <div class="b pay"><span class="v">1C</span><span class="l">temp?</span></div>
+</div>
+<div class="widget">
+  <label for="advIn">Paste manufacturer data (hex, company ID first)</label>
+  <input type="text" id="advIn" value="58 52 fd 02 40 02 00 8c 63 06 01 02 ff ff 1c" spellcheck="false">
+  <div class="out" id="advOut"></div>
+</div>
+<p>Device number 140 is the tag type. It selects the pixel packing in the vendor SDK, and it is what the app matches against its server-side model table. The five trailing bytes are not read by the app. The last one, 28 decimal, sits where a temperature would.</p>
+</section>
+
+<section id="frames">
+<h2>6. Frames</h2>
+<p>Three frame types, all starting with <code>XTE</code>. Byte 3 tells them apart: <code>01</code> command, <code>02</code> data, <code>04</code> response. Checksums are plain byte sums modulo 256, and each covers everything after itself.</p>
+<div class="legend"><span class="y">length</span><span class="r">checksum</span><span class="k">command</span></div>
+
+<h3>Command frame, host → tag</h3>
+<div class="rail">
+  <div class="b magic"><span class="v">58</span><span class="l">X</span></div>
+  <div class="b magic"><span class="v">54</span><span class="l">T</span></div>
+  <div class="b magic"><span class="v">45</span><span class="l">E</span></div>
+  <div class="b type"><span class="v">01</span><span class="l">type</span></div>
+  <div class="b len"><span class="v">0B</span><span class="l">len</span></div>
+  <div class="b ck"><span class="v">4B</span><span class="l">sum[6:]</span></div>
+  <div class="b cmd"><span class="v">01</span><span class="l">cmd</span></div>
+  <div class="b pay"><span class="v">00</span><span class="l">size</span></div>
+  <div class="b pay"><span class="v">00</span><span class="l">size</span></div>
+  <div class="b pay"><span class="v">1E</span><span class="l">size</span></div>
+  <div class="b pay"><span class="v">2C</span><span class="l">size</span></div>
+</div>
+<p class="small">Shown: allocate 7724 bytes (<code>0x1E2C</code>). Checksum = (01 + 00 + 00 + 1E + 2C) mod 256 = 4B.</p>
+<div class="tablewrap"><table>
+<tr><th>Cmd</th><th>Payload</th><th>Len</th><th>Does</th></tr>
+<tr><td class="mono">01</td><td class="mono">u32 total</td><td>11</td><td>Allocate flash for a whole container of up to 204 800 bytes.</td></tr>
+<tr><td class="mono">01</td><td class="mono">u32 total, u32 offset, u32 len</td><td>19</td><td>Allocate one 204 800-byte batch of a bigger container.</td></tr>
+<tr><td class="mono">02</td><td>none</td><td>7</td><td>Ask which packets of the current batch arrived.</td></tr>
+<tr><td class="mono">04</td><td class="mono">00</td><td>8</td><td>Refresh the panel.</td></tr>
+<tr><td class="mono">04</td><td class="mono">03 03</td><td>9</td><td>Refresh, for tags with more than one screen.</td></tr>
+<tr><td class="mono">05</td><td>none</td><td>7 (+1)</td><td>Apply uploaded firmware. The app sends an 8-byte frame whose length byte says 7.</td></tr>
+</table></div>
+
+<h3>Data packet, host → tag</h3>
+<div class="rail">
+  <div class="b magic"><span class="v">58</span><span class="l">X</span></div>
+  <div class="b magic"><span class="v">54</span><span class="l">T</span></div>
+  <div class="b magic"><span class="v">45</span><span class="l">E</span></div>
+  <div class="b type"><span class="v">02</span><span class="l">type</span></div>
+  <div class="b len"><span class="v">04</span><span class="l">len hi</span></div>
+  <div class="b len"><span class="v">C4</span><span class="l">len lo</span></div>
+  <div class="b ck"><span class="v">12</span><span class="l">sum[7:]</span></div>
+  <div class="b"><span class="v">07</span><span class="l">total</span></div>
+  <div class="b"><span class="v">00</span><span class="l">index</span></div>
+  <div class="b pay"><span class="v">…</span><span class="l">≤1211 B</span></div>
+</div>
+<p>The length is 16-bit here because a full packet is 1220 bytes. The container is cut into 1211-byte pieces, numbered from zero, and every packet carries the total count so the tag can size its bitmap. Each packet then goes out as five 244-byte writes. At most 255 packets per batch.</p>
+
+<h3>Response frame, tag → host</h3>
+<div class="rail">
+  <div class="b magic"><span class="v">58</span><span class="l">X</span></div>
+  <div class="b magic"><span class="v">54</span><span class="l">T</span></div>
+  <div class="b magic"><span class="v">45</span><span class="l">E</span></div>
+  <div class="b type"><span class="v">04</span><span class="l">type</span></div>
+  <div class="b len"><span class="v">08</span><span class="l">len</span></div>
+  <div class="b ck"><span class="v">03</span><span class="l">sum</span></div>
+  <div class="b cmd"><span class="v">04</span><span class="l">cmd</span></div>
+  <div class="b"><span class="v">FF</span><span class="l">status</span></div>
+  <div class="b pay"><span class="v">00</span><span class="l">pad</span></div>
+  <div class="b pay"><span class="v">…</span><span class="l">to 16 B</span></div>
+</div>
+<p class="small">Shown: the reply to a refresh. Notifications are zero-padded to 16 bytes.</p>
+<div class="tablewrap"><table>
+<tr><th>Reply to</th><th>Status</th><th>Meaning</th></tr>
+<tr><td class="mono">01</td><td class="mono">FF</td><td>Flash allocated. Start sending packets.</td></tr>
+<tr><td class="mono">01</td><td>other</td><td>Refused. Disconnect.</td></tr>
+<tr><td class="mono">02</td><td>—</td><td>Bytes from offset 7 are a received-packet bitmap.</td></tr>
+<tr><td class="mono">04 / 05</td><td class="mono">FF</td><td>Done. The waveform has started.</td></tr>
+<tr><td class="mono">04 / 05</td><td class="mono">68</td><td>Packets missing. Bytes from offset 8 are the bitmap.</td></tr>
+</table></div>
+</section>
+
+<section id="container">
+<h2>7. The image container</h2>
+<p>The payload the data packets carry is a small container starting with <code>XTEK</code>. It can hold several image records, each with its own position and size, though a full-screen push uses one.</p>
+<div class="tablewrap"><table>
+<tr><th>Offset</th><th>Size</th><th>Field</th></tr>
+<tr><td class="mono">0</td><td>4</td><td class="mono">"XTEK"</td></tr>
+<tr><td class="mono">4</td><td>4</td><td>u32 checksum: sum of every byte from offset 12 to the end</td></tr>
+<tr><td class="mono">8</td><td>4</td><td>u32 total container length</td></tr>
+<tr><td class="mono">12</td><td>1</td><td>image count N</td></tr>
+<tr><td class="mono">13</td><td>4·N</td><td>u32 offset of each image record</td></tr>
+<tr><td colspan="3"><em>per image record</em></td></tr>
+<tr><td class="mono">+0</td><td>16</td><td>u32 x, y, width, height</td></tr>
+<tr><td class="mono">+16</td><td>1</td><td>compression: 00 raw, 01 RLE</td></tr>
+<tr><td class="mono">+17</td><td>4</td><td>u32 data length</td></tr>
+<tr><td class="mono">+21</td><td>n</td><td>packed pixel data</td></tr>
+</table></div>
+
+<h3>Two bits per pixel</h3>
+<p>The packer matches each source pixel exactly against three colours and calls everything else black. That is why anti-aliased edges must be quantised before packing: a pink edge pixel is "anything else", and becomes a black outline. Click the pixels to see the codes and the byte they pack into.</p>
+<div class="widget">
+  <div class="pix" id="pix"></div>
+  <div class="out" id="pixOut"></div>
+  <p class="small" style="margin:.6rem 0 0">Codes: <span class="swatch" style="background:#fff"></span>white 1 · <span class="swatch" style="background:#E0B000"></span>yellow 2 · <span class="swatch" style="background:#C1301C"></span>red 3 · <span class="swatch" style="background:#16181B"></span>black 0. First pixel in the top two bits.</p>
+</div>
+
+<h3>RLE, the vendor's way</h3>
+<p>The compression is run-length with a twist: the packed bytes are split into two halves and each half is encoded separately as <code>count, value</code> pairs with count capped at 255. The two encoded halves are concatenated. The tag accepts raw data too, so a first port can skip compression and send <code>00</code>. Flat labels compress well; a dithered photo does not compress at all and the encoder falls back to raw.</p>
+<pre><code>packed   09 09 09 09 01 01 | 02 02 02 02 02 02
+halves   04 09  02 01      | 06 02
+result   04 09 02 01 06 02</code></pre>
+</section>
+
+<section id="handshake">
+<h2>8. The handshake</h2>
+<p>A push is three exchanges. Times are from a real PSJ-213 session over BlueZ.</p>
+<div class="seq"><svg viewBox="0 0 760 420" role="img" aria-label="Sequence diagram of an image push">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink)"/></marker>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--red)"/></marker>
+  </defs>
+  <text x="120" y="24" text-anchor="middle" class="hd">Host</text>
+  <text x="640" y="24" text-anchor="middle" class="hd">Tag</text>
+  <line x1="120" y1="34" x2="120" y2="410" class="lane"/>
+  <line x1="640" y1="34" x2="640" y2="410" class="lane"/>
+  <g>
+    <line x1="120" y1="60" x2="638" y2="60" class="h2t"/><text x="380" y="52" text-anchor="middle">connect · MTU 247 · enable notify</text><text x="30" y="64" class="t">0.0 s</text>
+    <line x1="120" y1="110" x2="638" y2="110" class="h2t"/><text x="380" y="102" text-anchor="middle">01 · allocate 3732 bytes</text><text x="30" y="114" class="t">+1.7 s</text>
+    <line x1="640" y1="145" x2="122" y2="145" class="t2h"/><text x="380" y="137" text-anchor="middle" fill="var(--red)">01 FF · allocated</text><text x="30" y="149" class="t">+90 ms</text>
+    <line x1="120" y1="190" x2="638" y2="190" class="h2t"/><text x="380" y="182" text-anchor="middle">02 · packet 0 of 4 · 5 writes</text>
+    <line x1="120" y1="215" x2="638" y2="215" class="h2t"/><text x="380" y="207" text-anchor="middle">02 · packet 1</text>
+    <line x1="120" y1="240" x2="638" y2="240" class="h2t"/><text x="380" y="232" text-anchor="middle">02 · packet 2</text>
+    <line x1="120" y1="265" x2="638" y2="265" class="h2t"/><text x="380" y="257" text-anchor="middle">02 · packet 3</text><text x="30" y="269" class="t">+100 ms</text>
+    <text x="380" y="297" text-anchor="middle" class="t">wait 100 ms</text>
+    <line x1="120" y1="325" x2="638" y2="325" class="h2t"/><text x="380" y="317" text-anchor="middle">04 00 · refresh</text>
+    <line x1="640" y1="360" x2="122" y2="360" class="t2h"/><text x="380" y="352" text-anchor="middle" fill="var(--red)">04 FF · waveform started</text><text x="30" y="364" class="t">+60 ms</text>
+    <text x="380" y="398" text-anchor="middle" class="t">disconnect · panel settles over ~20 s</text>
+  </g>
+</svg></div>
+<p>Nothing in the exchange identifies the host, names a store, or checks a binding. An unprovisioned tag straight out of the box takes the push. Whatever the base station and cloud do, they do it over this same pipe.</p>
+</section>
+
+<section id="patch">
+<h2>9. Lost packets</h2>
+<p>Write-without-response has no acknowledgement, so packets can vanish. The tag keeps a bitmap of which indexes arrived. If the refresh command finds gaps it answers <code>68</code> instead of <code>FF</code> and attaches the bitmap from byte 8, most significant bit first, one bit per packet, 1 for received.</p>
+<ol>
+  <li>Expand the bitmap and take the first <em>total</em> bits.</li>
+  <li>Resend every packet whose bit is 0.</li>
+  <li>Wait 100 ms and send the refresh again.</li>
+  <li>Give up after three rounds.</li>
+</ol>
+<p>Containers over 204 800 bytes go in batches. Each batch gets its own allocation with an offset, its own packet numbering, and a <code>02</code> verify command that returns the same kind of bitmap from byte 7. Only the last batch ends with a refresh. No PSJ-213 image comes anywhere near that size, but it is the path firmware updates take.</p>
+</section>
+
+<section id="build">
+<h2>10. Build a frame</h2>
+<p>Pick a command and a size to see the exact bytes. Useful when checking a port against the spec.</p>
+<div class="widget">
+  <div class="row">
+    <div><label for="cmdSel">Command</label>
+      <select id="cmdSel" style="font:inherit;padding:.45rem;width:100%;border:1px solid var(--line);border-radius:4px;background:var(--code-bg);color:var(--ink)">
+        <option value="alloc">01 · allocate</option>
+        <option value="verify">02 · verify</option>
+        <option value="refresh">04 · refresh</option>
+        <option value="ota">05 · apply firmware</option>
+        <option value="packet">02 · data packet header</option>
+      </select></div>
+    <div><label for="cmdN">Size / index</label><input type="text" id="cmdN" value="7750" spellcheck="false"></div>
+  </div>
+  <div class="out" id="cmdOut"></div>
+</div>
+</section>
+
+<section id="history">
+<h2>11. How it was found</h2>
+<p>The tag arrived with no app and no base station. Weeks of reconnaissance established the panel size from NFC, decoded the advertisement, mapped the GATT table, identified the Cordio stack from the UUID, found SWD pads on the board and read a Cortex-M0 CPUID through a bit-banged ESP32 probe during the boot window before the firmware locks the port. None of that gave the protocol.</p>
+<p>What did was the vendor's operation manual. Its download page carried a QR code, the QR code led to an Android APK on the reseller's own server, and the APK turned out to be a WeChat mini-program in a wrapper. Mini-programs ship as JavaScript, so the whole BLE layer was readable: frame builders, the pixel packer, the send state machine with its patch loop. The SDK inside calls itself <code>chromaink</code>.</p>
+<p>The spec in this repository was written from that reading, then checked the other way: a Python codec generates the same bytes the vendor's code does for the same input, byte for byte, and those vectors are the conformance suite every other port must pass. The first push onto real hardware succeeded at the protocol level immediately and came out sheared, which is how section 3 was learned. Three pushes later the image was straight.</p>
+<p>The vendor code is not in the repository. Ports are written from the spec alone.</p>
+</section>
+
+<footer>
+  <p>xte-esl · Specification in <code>docs/protocol.md</code>, vectors in <code>testdata/</code>. Verified on Poshiji PSJ-213, hardware rev 2, firmware 4.0.2, September 2026.</p>
+</footer>
+</main>
+</div>
+
+<script>
+(function(){
+  var INK={k:'#16181B',w:'#F4F4F1',r:'#C1301C',y:'#E0B000'};
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---------- panel simulator ---------- */
+  var cv=document.getElementById('panel'), cx=cv.getContext('2d');
+  var W=250,H=122;
+  function drawLabel(ctx,idx){
+    ctx.fillStyle=INK.w; ctx.fillRect(0,0,W,H);
+    ctx.textBaseline='top';
+    if(idx===0){
+      ctx.fillStyle=INK.r; ctx.font='bold 46px "Bricolage Grotesque", sans-serif'; ctx.fillText('$4.20',8,4);
+      ctx.fillStyle=INK.k; ctx.font='600 15px "Public Sans", sans-serif'; ctx.fillText('Poshiji PSJ-213',10,64); ctx.fillText('2.13" BWRY · XTE',10,86);
+      ctx.fillStyle=INK.y; ctx.fillRect(180,60,60,54); ctx.strokeStyle=INK.k; ctx.lineWidth=2; ctx.strokeRect(181,61,58,52);
+      ctx.fillStyle=INK.k; ctx.fillRect(0,H-3,W,3);
+    }else if(idx===1){
+      ctx.fillStyle=INK.k; ctx.font='bold 44px "Bricolage Grotesque", sans-serif'; ctx.fillText('TOP',8,2);
+      ctx.fillStyle=INK.r; ctx.beginPath(); ctx.moveTo(200,15); ctx.lineTo(240,55); ctx.lineTo(160,55); ctx.closePath(); ctx.fill();
+      ctx.fillStyle=INK.y; ctx.fillRect(8,70,112,42); ctx.strokeStyle=INK.k; ctx.lineWidth=2; ctx.strokeRect(9,71,110,40);
+      ctx.fillStyle=INK.k; ctx.font='16px "Public Sans", sans-serif'; ctx.fillText('bottom',140,82);
+    }else{
+      ctx.fillStyle=INK.k; ctx.fillRect(0,0,W,H);
+    }
+  }
+  var quant=function(img){ // snap canvas to 4 inks
+    var d=img.data;
+    for(var i=0;i<d.length;i+=4){
+      var r=d[i],g=d[i+1],b=d[i+2];
+      var c=(r>200&&g>200&&b>200)?'w':(r>170&&g>120&&b<90)?'y':(r>150&&g<110)?'r':'k';
+      var h=INK[c]; d[i]=parseInt(h.substr(1,2),16); d[i+1]=parseInt(h.substr(3,2),16); d[i+2]=parseInt(h.substr(5,2),16);
+    }
+    return img;
+  };
+  var cur=0, target=null, prev=null;
+  function renderTarget(idx){
+    var off=document.createElement('canvas'); off.width=W; off.height=H;
+    var oc=off.getContext('2d'); drawLabel(oc,idx);
+    return quant(oc.getImageData(0,0,W,H));
+  }
+  function show(img){ cx.putImageData(img,0,0); }
+  prev=renderTarget(2); target=renderTarget(0); show(target);
+
+  var phaseEl=document.getElementById('phase'), bar=document.getElementById('bar');
+  var go=document.getElementById('go'), swap=document.getElementById('swap');
+  function setPhase(t,d,p){ phaseEl.innerHTML='<b>'+t+'</b>'+d; bar.style.width=(p*100)+'%'; }
+  function solid(c){ var img=cx.createImageData(W,H); var d=img.data; var h=INK[c]; var r=parseInt(h.substr(1,2),16),g=parseInt(h.substr(3,2),16),b=parseInt(h.substr(5,2),16); for(var i=0;i<d.length;i+=4){d[i]=r;d[i+1]=g;d[i+2]=b;d[i+3]=255;} return img; }
+  function mix(a,b,t){ var img=cx.createImageData(W,H); var d=img.data,da=a.data,db=b.data; for(var i=0;i<d.length;i+=4){ var s=(((i>>2)%W)*7+((i>>2)/W|0)*13)%17/17; var u=s<t?1:0; d[i]=u?db[i]:da[i]; d[i+1]=u?db[i+1]:da[i+1]; d[i+2]=u?db[i+2]:da[i+2]; d[i+3]=255;} return img; }
+  function classes(img){ // per-pixel ink class of target
+    var d=img.data, out=new Uint8Array(W*H);
+    for(var i=0,p=0;i<d.length;i+=4,p++){ var r=d[i],g=d[i+1]; out[p]= (r>200&&g>200&&d[i+2]>200)?1 : (r>170&&g>120&&d[i+2]<90)?2 : (r>150&&g<110)?3 : 0; }
+    return out;
+  }
+  function sortFrame(cls,step){ // colour sorting: pigments surface in order of mobility
+    var img=cx.createImageData(W,H), d=img.data;
+    for(var p=0;p<cls.length;p++){
+      var c=cls[p], col;
+      var jitter=((p*2654435761)>>>0)%100/100;
+      if(c===1) col=INK.w;
+      else if(c===0) col= step>0.35? INK.k : (jitter<step*2? INK.k:INK.w);
+      else if(c===3) col= step>0.55? INK.r : (jitter<step? INK.r : (jitter<step+0.3? INK.k:INK.w));
+      else col= step>0.85? INK.y : (jitter<step*0.8? INK.y : (jitter<step? INK.r : INK.k));
+      d[p*4]=parseInt(col.substr(1,2),16); d[p*4+1]=parseInt(col.substr(3,2),16); d[p*4+2]=parseInt(col.substr(5,2),16); d[p*4+3]=255;
+    }
+    return img;
+  }
+  var running=false;
+  function refresh(){
+    if(running) return; running=true; go.disabled=true;
+    var cls=classes(target);
+    var t0=performance.now(), total=reduced?1200:6000;
+    var K=solid('k'), Wt=solid('w');
+    function frame(now){
+      var t=(now-t0)/total; if(t>=1){ show(target); setPhase('Settled','Ink is where the waveform left it. On a real panel this took ~20 s.',1); running=false; go.disabled=false; prev=target; return; }
+      if(t<0.42){ // clearing: 6 inversions, accelerating slightly
+        var n=Math.floor(t/0.42*6), sub=(t/0.42*6)%1;
+        var from = n%2? K:Wt, to = n%2? Wt:K;
+        show(mix(from,to,Math.min(1,sub*1.6)));
+        setPhase('Clearing · pulse '+(n+1)+' of 6','Black and white inverted at full field. Shakes stuck particles loose so the old image does not ghost.',t);
+      }else if(t<0.62){
+        var s=(t-0.42)/0.2; show(sortFrame(cls,s*0.4));
+        setPhase('Sorting · black','Long hold, one direction. The most mobile pigment settles first where the target is black.',t);
+      }else if(t<0.84){
+        var s2=0.4+(t-0.62)/0.22*0.45; show(sortFrame(cls,s2));
+        setPhase('Sorting · red','Lower field, longer pulses. Red has less charge than black, so it needs time to overtake.',t);
+      }else{
+        var s3=0.85+(t-0.84)/0.16*0.15; show(sortFrame(cls,Math.min(0.999,s3)));
+        setPhase('Sorting · yellow','Slowest pigment. Regions going to yellow pulse at their own rhythm, out of step with the rest.',t);
+      }
+      requestAnimationFrame(frame);
+    }
+    setPhase('Starting','',0);
+    requestAnimationFrame(frame);
+  }
+  go.addEventListener('click',refresh);
+  swap.addEventListener('click',function(){ cur=(cur+1)%3; target=renderTarget(cur); if(!running) refresh(); });
+
+  /* ---------- stride demo ---------- */
+  var sc=document.getElementById('stride'), sx=sc.getContext('2d');
+  var srange=document.getElementById('strideRange'), sval=document.getElementById('strideVal');
+  var src=renderTarget(1); var srcCls=classes(src);
+  // native buffer: 122 wide (pad 124) x 250 rows; row r = viewed column (249-r); byte0 = top
+  var NW=122,NH=250,NPAD=124;
+  function bufferCodes(){ // codes in native order
+    var out=new Uint8Array(NPAD*NH);
+    for(var r=0;r<NH;r++){ var vx=249-r; for(var c=0;c<NW;c++){ var vy=c; out[r*NPAD+c]=srcCls[vy*W+vx]; } }
+    return out;
+  }
+  var codes=bufferCodes();
+  function drawStride(sent){
+    // host packs rows of `sent` bytes (sent*4 px); the panel reads rows of 31 bytes.
+    var spx=sent*4, stream=[];
+    for(var r=0;r<NH;r++){ for(var c=0;c<spx;c++){ stream.push(c<NW? codes[r*NPAD+c] : 1); } }
+    var img=sx.createImageData(W,H), d=img.data, cols=[INK.k,INK.w,INK.y,INK.r];
+    for(var vr=0;vr<NH;vr++){ for(var vc=0;vc<NW;vc++){
+      var i=vr*NPAD+vc; var code = i<stream.length? stream[i] : 1;
+      var vx=249-vr, vy=vc; var col=cols[code]; var p=(vy*W+vx)*4;
+      d[p]=parseInt(col.substr(1,2),16); d[p+1]=parseInt(col.substr(3,2),16); d[p+2]=parseInt(col.substr(5,2),16); d[p+3]=255;
+    } }
+    sx.putImageData(img,0,0);
+  }
+  function setStride(v){ v=Math.max(24,Math.min(64,v|0)); srange.value=v; sval.textContent=v; drawStride(v); }
+  srange.addEventListener('input',function(){ setStride(this.value); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-stride]'),function(b){ b.addEventListener('click',function(){ setStride(this.getAttribute('data-stride')); }); });
+  setStride(31);
+
+  /* ---------- advert decoder ---------- */
+  var advIn=document.getElementById('advIn'), advOut=document.getElementById('advOut');
+  function hexBytes(s){ var m=s.replace(/0x/gi,'').match(/[0-9a-f]{2}/gi)||[]; return m.map(function(h){return parseInt(h,16);}); }
+  function decodeAdv(){
+    var t=hexBytes(advIn.value);
+    if(t.length<10||t[0]!==0x58||(t[1]!==0x54&&t[1]!==0x52)||[0xfd,0xfe,0xfc,0x04].indexOf(t[2])<0){ advOut.textContent='Not an XTE advertisement: needs X, T or R, then FD/FE/FC/04, and at least 10 bytes.'; return; }
+    var lines=[
+      'family        '+(t[1]===0x54?'XT (isXT=2)':'XR (isXT=3)'),
+      'record type   0x'+t[2].toString(16),
+      'hardware rev  '+t[3],
+      'firmware      '+(t[4]>>4)+'.'+(t[4]&15)+'.'+t[5],
+      'device number '+((t[6]<<8)|t[7])+'  (tag type; 140 = 2.13" BWRY)',
+      'battery       '+t[8]+' %',
+      'chip type     '+(t[9]>>4)+'   tx power '+(t[9]&15),
+      'unread        '+t.slice(10).map(function(b){return ('0'+b.toString(16)).slice(-2);}).join(' ')+(t.length>14?'   (last = '+t[t.length-1]+', temperature?)':'')
+    ];
+    advOut.textContent=lines.join('\n');
+  }
+  advIn.addEventListener('input',decodeAdv); decodeAdv();
+
+  /* ---------- pixel packer ---------- */
+  var pix=document.getElementById('pix'), pixOut=document.getElementById('pixOut');
+  var order=['w','y','r','k'], codeOf={w:1,y:2,r:3,k:0}, names={w:'white',y:'yellow',r:'red',k:'black'};
+  var state=['w','y','r','k'];
+  function renderPix(){
+    pix.innerHTML='';
+    state.forEach(function(c,i){ var b=document.createElement('button'); b.style.background=INK[c]; b.setAttribute('aria-label','pixel '+(i+1)+' '+names[c]+', click to change'); b.addEventListener('click',function(){ state[i]=order[(order.indexOf(state[i])+1)%4]; renderPix(); }); pix.appendChild(b); });
+    var codes=state.map(function(c){return codeOf[c];});
+    var byte=(codes[0]<<6)|(codes[1]<<4)|(codes[2]<<2)|codes[3];
+    pixOut.textContent='codes  '+codes.join(' ')+'\nbits   '+codes.map(function(c){return ('0'+c.toString(2)).slice(-2);}).join(' ')+'\nbyte   0x'+('0'+byte.toString(16)).slice(-2).toUpperCase()+'  ('+byte+')';
+  }
+  renderPix();
+
+  /* ---------- frame builder ---------- */
+  var cmdSel=document.getElementById('cmdSel'), cmdN=document.getElementById('cmdN'), cmdOut=document.getElementById('cmdOut');
+  function hx(a){ return a.map(function(b){return ('0'+(b&255).toString(16)).slice(-2);}).join(' '); }
+  function u32(n){ return [(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255]; }
+  function cmdFrame(cmd,payload){ var f=[0x58,0x54,0x45,1,7+payload.length,0,cmd].concat(payload); var s=0; for(var i=6;i<f.length;i++) s+=f[i]; f[5]=s&255; return f; }
+  function build(){
+    var n=parseInt(cmdN.value,10)||0, f, note='';
+    switch(cmdSel.value){
+      case 'alloc': f=cmdFrame(1,u32(n)); note='allocate '+n+' bytes'; break;
+      case 'verify': f=cmdFrame(2,[]); note='verify current batch'; break;
+      case 'refresh': f=cmdFrame(4,n>1?[3,3]:[0]); note=n>1?'refresh, multi-screen':'refresh, single screen (size/index ≤ 1)'; break;
+      case 'ota': f=cmdFrame(5,[]).concat([0]); note='apply firmware; length byte says 7, frame is 8'; break;
+      case 'packet': var total=Math.ceil(Math.max(1,n)/1211), idx=0, len=9+Math.min(1211,n); f=[0x58,0x54,0x45,2,(len>>8)&255,len&255,0,total,idx]; note='header for packet 0 of '+total+' carrying a '+n+'-byte container; checksum covers total, index and data'; break;
+    }
+    cmdOut.textContent=hx(f)+'\n'+note+(f.length>9?'':'\nlength '+f.length+', checksum 0x'+('0'+f[5].toString(16)).slice(-2));
+  }
+  cmdSel.addEventListener('change',build); cmdN.addEventListener('input',build); build();
+})();
+</script>

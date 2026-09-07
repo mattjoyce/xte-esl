@@ -1,0 +1,10 @@
+# reference material: APK, unpacked mini-program, beautified vendor JS, manual.
+# The repo is clean-room: docs/protocol.md and testdata/ are all a port needs.
+references/
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+dist/
+*.bin
+.DS_Store

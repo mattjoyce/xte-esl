@@ -1,0 +1,12 @@
+...............................................................................................................................................................................................................................................................................
+
+*** contact ***
+
+=== SWD identify ===
+SWDIO=GPIO5  SWCLK=GPIO4  half-period=5us
+  jtag-to-swd      ack=no response (bus idle / not connected?)
+  dormant-to-swd   ack=no response (bus idle / not connected?)
+
+No debug port responded. Either the pads are not SWD, the
+wiring is wrong, the target is unpowered, or the DP is locked.
+auto-probe OFF. 'a' to resume, 'i' to re-identify.
