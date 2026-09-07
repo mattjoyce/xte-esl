@@ -10,7 +10,7 @@ python3 -m http.server 8765 --directory ../web   # or any static server
 ```
 
 Open http://localhost:8765 in Chrome or Edge. For a phone, serve over
-HTTPS (for example `tailscale serve`) because Web Bluetooth refuses plain
-HTTP off localhost. Safari, iOS and Firefox cannot do Web Bluetooth.
+HTTPS from any origin you control, because Web Bluetooth refuses plain HTTP
+off localhost. Safari, iOS and Firefox cannot do Web Bluetooth.
 
 `app.js` is a build product; rebuild after editing `app.ts` or the port.

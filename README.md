@@ -69,31 +69,13 @@ Other tools: `python/scan.py` prints and watches the advertisement,
 ## Phone NFC reader
 
 [`docs/nfc.html`](docs/nfc.html) is a standalone, read-only Web NFC page for
-Chrome on an NFC-equipped Android phone. Serve it over HTTPS, open it directly
-on the phone, and tap **Start scanning**. It shows XTE identity fields, the
-record bytes exposed by the browser, and an exportable timestamped log.
-**Show example** works without NFC hardware. iPhone browsers do not support
-Web NFC. The page does not upload images or refresh the display.
-
-For private HTTPS access with Tailscale on both devices:
-
-```sh
-sudo tailscale serve --bg --https=443 "$PWD/docs/nfc.html"
-```
-
-Open the HTTPS URL printed by that command on your phone with Tailscale
-connected. To stop serving: `sudo tailscale serve --https=443 off`.
-This requires an available Tailscale Serve HTTPS port; check existing Serve
-configuration before using it on a machine already serving another app.
-
-The PSJ-213's malformed NDEF Text record may be rejected or partly stripped
-by the browser. In that case use a native NFC reader app; Web NFC cannot
-issue raw chip commands or read the full tag memory.
-
-The [NFC findings](docs/nfc-findings.md) record the phone test, dump analysis,
-vendor-app evidence, and next experiments. Native NFC identification worked;
-Chrome delivered no visible reading in the test. Direct NFC refresh remains
-unproven.
+Chrome on an NFC-equipped Android phone. Serve it from any HTTPS origin, open
+it on the phone, and tap **Start scanning**. It shows XTE identity fields,
+the record bytes exposed by the browser, and an exportable log. **Show
+example** works without NFC hardware. iPhone browsers do not support Web
+NFC, and the page cannot refresh the display. The PSJ-213's malformed NDEF
+Text record may be rejected or stripped by the browser; a native NFC reader
+app reads it. [NFC findings](docs/nfc-findings.md) has the detail.
 
 ## Layout
 

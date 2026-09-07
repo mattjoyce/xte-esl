@@ -77,8 +77,7 @@ prove that the MCU updates NFC memory.
 
 [nfc.html](nfc.html) is a read-only diagnostic page with identity parsing,
 record data, timestamped events, a downloadable log and an example mode.
-The test served it over a private Tailscale HTTPS URL for this machine;
-any HTTPS origin works.
+The test served it from a private HTTPS origin; any HTTPS origin works.
 
 The prior session reported successful HTTPS delivery and simulated scans.
 On the real phone, Chrome stayed at scanning while NFC Tools could read the
