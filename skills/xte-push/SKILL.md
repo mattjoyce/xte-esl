@@ -40,6 +40,20 @@ QR code with a caption:
 .venv/bin/python python/label.py --qr https://example.com --name "Scan me" --push 9F:1D:00:0B:33:36
 ```
 
+A dashboard from a JSON spec (hero figure, up to three stat tiles with
+sparklines, a `columns` or `line` chart, a meter; see the docstring in
+`python/dashboard.py` for the keys, `examples/dashboard-*.json` for shapes):
+
+```sh
+.venv/bin/python python/dashboard.py spec.json --push 9F:1D:00:0B:33:36
+echo '{"title":"Rack 1","tiles":[{"label":"CPU","value":"41%","spark":[30,35,40,41]}]}' | .venv/bin/python python/dashboard.py - --push 9F:1D:00:0B:33:36
+```
+
+Use `"alert": true` on a tile or hero, or `"alert_above"` on a chart, to
+draw that value in red; leave everything else black. Push a dashboard no
+more often than every few minutes: each refresh is a 20-second full-panel
+waveform.
+
 An existing image (resized to 250x122; add `--no-dither` for flat graphics,
 omit it for photos):
 

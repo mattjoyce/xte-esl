@@ -59,6 +59,15 @@ For a price label, message or QR code without drawing anything:
 .venv/bin/python python/label.py --name "Flat white" --price '$4.20' --note "regular" --push <address>
 ```
 
+For a mini dashboard (hero figure, stat tiles with sparklines, a column or
+line chart, a meter) from a JSON spec:
+
+```sh
+.venv/bin/python python/dashboard.py examples/dashboard-solar.json --push <address>
+```
+
+<p align="center"><img src="docs/images/dashboard-solar.png" width="500" alt="Rendered dashboard: hero figure 3.2kW, battery and grid tiles with sparklines, kWh-by-hour column chart with the current hour highlighted"></p>
+
 To draw your own, use 250x122 and only pure white, black, red (`FF0000`)
 and yellow (`FFFF00`); `examples/qr_label.py` is a worked example. `push.py` rotates it into the tag's portrait buffer, packs,
 connects, and pushes. Use `--no-dither` for flat graphics; dithering only
@@ -85,7 +94,7 @@ app reads it. [NFC findings](docs/nfc-findings.md) has the detail.
 | `docs/protocol.md` | the wire format and procedures, the single source for ports |
 | `docs/explainer.html` | the illustrated guide |
 | `testdata/` | conformance vectors and how to use them |
-| `python/` | reference codec, BLE pusher, label renderer, scan and probe tools |
+| `python/` | reference codec, BLE pusher, label and dashboard renderers, scan and probe tools |
 | `web/` | single-page label editor that pushes over Web Bluetooth from Chrome |
 | `skills/xte-push/` | skill that lets a coding agent update the tag with one command; `AGENTS.md` points here |
 | `go/`, `ts/` | ports, each with the same self-test contract |
