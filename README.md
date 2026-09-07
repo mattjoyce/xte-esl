@@ -102,7 +102,7 @@ unproven.
 | `testdata/` | conformance vectors and how to use them |
 | `python/` | reference codec, BLE pusher, label renderer, scan and probe tools |
 | `web/` | single-page label editor that pushes over Web Bluetooth from Chrome |
-| `.claude/skills/xte-push/` | skill that lets a coding agent update the tag with one command |
+| `skills/xte-push/` | skill that lets a coding agent update the tag with one command; `AGENTS.md` points here |
 | `go/`, `ts/` | ports, each with the same self-test contract |
 | `examples/` | label renderers and test images |
 | `hardware/` | gitignored. Reverse-engineering kit: ESP32 SWD probe sketch, NFC dump, reference photos. |
