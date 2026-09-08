@@ -64,6 +64,15 @@ def text_h(f) -> int:
     return asc + desc
 
 
+def label_line(d, x, y, text, width, size=9):
+    """Draw a small label truncated with an ellipsis to fit width. Returns its height."""
+    f = font(REGULAR, size)
+    while len(text) > 3 and d.textlength(text, font=f) > width:
+        text = text[:-2].rstrip() + "…"
+    d.text((x, y), text, fill=BLACK, font=f)
+    return text_h(f)
+
+
 class Box:
     def __init__(self, x, y, w, h):
         self.x, self.y, self.w, self.h = int(x), int(y), int(w), int(h)
@@ -101,6 +110,8 @@ def hero(d, box: Box, spec: dict) -> None:
     y += text_h(fv) - 6
     if delta:
         fd = fit(d, delta, REGULAR, 11, 8, box.w)
+        while len(delta) > 3 and d.textlength(delta, font=fd) > box.w:   # never spill into the next column
+            delta = delta[:-2].rstrip() + "…"
         d.text((box.x, y), delta, fill=RED if alert else BLACK, font=fd)
 
 
@@ -128,9 +139,7 @@ def tile(d, box: Box, spec: dict) -> None:
     spark = spec.get("spark") or []
     y = box.y
     if label:
-        fl = font(REGULAR, 9)
-        d.text((box.x, y), label, fill=BLACK, font=fl)
-        y += text_h(fl)
+        y += label_line(d, box.x, y, label, box.w)
     spark_h = 12 if spark else 0
     room = box.h - (y - box.y) - spark_h - 2
     fv = fit(d, value, BOLD, min(22, room), 12, box.w - 2)
@@ -146,9 +155,7 @@ def columns(d, box: Box, spec: dict) -> None:
     label = spec.get("label", "")
     y = box.y
     if label:
-        fl = font(REGULAR, 9)
-        d.text((box.x, y), label, fill=BLACK, font=fl)
-        y += text_h(fl)
+        y += label_line(d, box.x, y, label, box.w)
     ticks = [t for t in (spec.get("ticks") or []) if isinstance(t, (list, tuple)) and len(t) == 2]
     plot = Box(box.x, y, box.w, box.h - (y - box.y) - (9 if ticks else 0))
     n = len(values)
@@ -201,9 +208,7 @@ def line_chart(d, box: Box, spec: dict) -> None:
     label = spec.get("label", "")
     y = box.y
     if label:
-        fl = font(REGULAR, 9)
-        d.text((box.x, y), label, fill=BLACK, font=fl)
-        y += text_h(fl)
+        y += label_line(d, box.x, y, label, box.w)
     plot = Box(box.x, y, box.w - 28, box.h - (y - box.y) - 2)
     alert = spec.get("alert_above") is not None and values[-1] > spec["alert_above"]
     sparkline(d, plot, values, alert)
@@ -259,7 +264,8 @@ def render(spec: dict) -> Image.Image:
     tiles = (spec.get("tiles") or [])[:3]
     chart = spec.get("chart")
     if tiles:
-        th = 44 if chart else bottom - top
+        has_spark = any(t.get("spark") for t in tiles)
+        th = (44 if has_spark else 30) if chart else bottom - top
         n = len(tiles)
         tw = (right - left - 4 * (n - 1)) // n
         for i, t in enumerate(tiles):
