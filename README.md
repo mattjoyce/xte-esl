@@ -41,6 +41,7 @@ with this SDK.
   sections were observed on hardware and which were transcribed from the
   vendor app.
 - **Understand why**: [the field guide](https://mattjoyce.github.io/xte-esl/explainer.html).
+- **Battery life, cadence, running from USB**: [`docs/power.md`](docs/power.md).
 
 ## Quick start (Python)
 
@@ -96,6 +97,7 @@ app reads it. [NFC findings](docs/nfc-findings.md) has the detail.
 |---|---|
 | `docs/protocol.md` | the wire format and procedures, the single source for ports |
 | `docs/explainer.html` | the illustrated guide |
+| `docs/power.md` | what the tag draws, cell life against refresh cadence, USB power |
 | `testdata/` | conformance vectors and how to use them |
 | `python/` | reference codec, BLE pusher, label and dashboard renderers, scan and probe tools |
 | `web/` | single-page label editor that pushes over Web Bluetooth from Chrome |

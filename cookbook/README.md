@@ -21,8 +21,8 @@ source  ->  spec (dict)  ->  python/dashboard.py -  ->  push.py --if-changed
   waveform and costs battery; a dashboard that has not changed should not
   be redrawn. The pusher remembers a hash of the last image per tag in
   `~/.cache/xte-esl/`.
-- Cadence: every 5 to 15 minutes is plenty. See the battery note in the
-  README.
+- Cadence: every 5 to 15 minutes is plenty on coin cells for a few weeks,
+  hourly for months. `docs/power.md` has the table and the USB option.
 - Nothing personal in the repo. Recipes fetch at run time and store nothing;
   the values only leave the machine if they go to the tag.
 

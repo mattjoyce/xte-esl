@@ -143,6 +143,7 @@ kbd{font-family:"IBM Plex Mono",monospace;font-size:.85em;border:1px solid var(-
     <li><a href="#patch">9. Lost packets</a></li>
     <li><a href="#build">10. Build a frame</a></li>
     <li><a href="#history">11. How it was found</a></li>
+    <li><a href="#power">12. Power</a></li>
   </ol>
 </nav>
 
@@ -447,6 +448,12 @@ result   04 09 02 09 02 01      (plain RLE would say 06 09 02 01, and be wrong)<
 <p>What did was the vendor's operation manual. Its download page carried a QR code, the QR code led to an Android APK on the reseller's own server, and the APK turned out to be a WeChat mini-program in a wrapper. Mini-programs ship as JavaScript, so the whole BLE layer was readable: frame builders, the pixel packer, the send state machine with its patch loop. The SDK inside calls itself <code>chromaink</code>.</p>
 <p>The spec in this repository was written from that reading, then checked the other way: a Python codec generates the same bytes the vendor's code does for the same input, byte for byte, and those vectors are the conformance suite every other port must pass. The first push onto real hardware succeeded at the protocol level immediately and came out sheared, which is how section 3 was learned. Three pushes later the image was straight.</p>
 <p>The vendor code is not in the repository. Ports are written from the spec alone.</p>
+</section>
+
+<section id="power">
+<h2>12. Power</h2>
+<p>E-paper holds its image for free; every milliamp-hour goes into refreshes and the radio's sleep current. Two CR2450 cells in parallel give about 1200 mAh at 3 V, but coin cells have high internal resistance and the 20-second refresh pulse sags the rail, so the firmware's low-voltage cutoff will trip before the cells are empty. At a shop's handful of refreshes a day that is years; at a dashboard's every 15 minutes it is a couple of months. Hourly gets most of the way back to a year, and pushing only when the picture changes removes the night entirely.</p>
+<p>USB is 5 V and the tag is a 3 V design: put a low-quiescent 3.3 V regulator in between, with a capacitor at the battery holder for the refresh pulse. On mains the constraint becomes the ink's cycle life, which is on the order of a million refreshes. The numbers, the cell comparison and the two measurements that would replace the estimates are in <code>docs/power.md</code>.</p>
 </section>
 
 <footer>
