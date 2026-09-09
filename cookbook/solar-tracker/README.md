@@ -6,35 +6,47 @@ A grid-tied inverter's day on the tag, with a different view after dark.
 
 ## Design
 
-The panel has room for one hero figure, two small tiles, one chart and
-optionally a meter, in four inks. Two views share that frame:
+The panel has room for one sentence, one hero figure, two small tiles and
+one chart, in four inks, read at a glance from a metre. Two views share
+that frame. The design went through a Tufte × Knaflic review
+(`reviews/luminary-solar-2026-09-09/`); its three changes are in.
 
-**Day** (sun up). The number you glance at is generation now, so it is the
-hero, with today's kWh and the peak beneath. The two tiles are the inputs a
-grid-tied inverter is at the mercy of: irradiance with a three-hour
-sparkline, because the irradiance-to-output ratio is the primary diagnostic
-for shade, soiling and clipping, and grid voltage, which goes red outside
-216 to 253 V because that is what makes inverters trip. The chart is kWh by
-hour for the day with the current hour in yellow and the peak time in the
-label. No meter: it would only repeat the hero.
+**The title is the message.** Not "Solar" but "4.5 kWh, +0.9 vs
+yesterday", or at night "17.3 kWh today, ~18 tomorrow". It is the one
+line the reader should get in two seconds.
 
-**Night** (no generation, after 18:00 or before 06:00). The day is over, so
-today's total is the hero, with the peak beneath. Tiles carry the best day
-of the last 30 and the inverter temperature. The chart becomes the last
-seven days with today in yellow, and a meter shows today against the best
-day, which is the one number worth a glance at breakfast.
+**Day** (sun up). Generation now is the hero, with the peak beneath. The
+tiles are the diagnostic and the constraint: "vs sun", the share of the
+sun's offer (irradiance × array kWp) the inverter turned into power, which
+is what reveals shade, soiling and clipping; and grid voltage, at regular
+weight until it leaves 216 to 253 V, when it goes red. The chart is kWh by
+hour on a fixed scale (one hour at full array power is the top), with
+yesterday's profile as a 1-pixel outline behind the bars and a full-height
+yellow band on the current hour, so the marker is legible however short
+the in-progress bar is.
 
-Red is reserved for the alert states (grid voltage out of range, battery
-under 20% on systems that have one). Everything else is black on white.
+**Night** (no generation, after 18:00 or before 06:00). Today's total is
+the hero. Tiles are "vs sun" for the whole day and tomorrow's forecast
+from OpenMeteo. The chart is the last seven days on a fixed scale, today
+banded, with a dotted line at the best day of the month. No meter: the
+chart against the dotted line already says it.
+
+Red is reserved for alerts (grid voltage out of range, conversion below
+40%, battery under 20% on systems that have one). Everything else is black
+on white, drawn in hard pixels with no anti-aliasing.
 
 ## Data path
 
 The recipe reads one JSON snapshot and never talks to an inverter itself.
 For a GoodWe monitored with the rrdtool stack, `snapshot.py` in that
 project's `src/` builds the snapshot inside the `solar-monitor` container:
-hourly energy and today's peak from the one-minute archive, the last seven
-days and best-of-month from the daily archive, irradiance from the weather
-RRD, and the live values from `rrdtool lastupdate`.
+hourly energy and today's peak from the one-minute archive, yesterday's
+profile from the hourly archive, the last seven days and best-of-month
+from the daily archive, irradiance and today's insolation from the weather
+RRD, the live values from `rrdtool lastupdate`, and tomorrow's forecast
+from OpenMeteo. The "vs sun" ratio uses `ARRAY_KWP` (13 × 400 W = 5.2 by
+default) and the forecast a performance ratio of 0.8; set both as
+environment variables on the container if they differ.
 
 ```sh
 # ad hoc, no deploy: run the exporter in the container over SSH, render locally

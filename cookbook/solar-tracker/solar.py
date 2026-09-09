@@ -8,28 +8,34 @@
 
 Source JSON (every key optional; missing ones leave their region empty):
 
-    now_w            generating now, W                 e_day_kwh        today so far
-    peak_w           today's peak, W                   peak_time        "12:40"
-    irradiance       W/m² now                          irradiance_series  recent values for the sparkline
-    vgrid            grid voltage, V                   temp_c           inverter temperature
-    hourly_kwh       today's energy per hour           hour_start       hour of hourly_kwh[0]
-    daily_kwh        last 7 days, oldest first, today last; null where unknown
-    best_kwh_30d     best day in the last 30           updated          "HH:MM" local
-    battery_pct, battery_series, grid_w, grid_series    for systems that have them
+    now_w                 generating now, W          e_day_kwh            today so far
+    peak_w, peak_time     today's peak               vgrid                grid voltage, V
+    hourly_kwh, hour_start   today's energy per hour from hour_start
+    yesterday_hourly_kwh  same window, yesterday     yesterday_by_now_kwh yesterday's total at this time of day
+    vs_sun_now_pct        output / (irradiance x kWp), now
+    vs_sun_day_pct        energy / (insolation x kWp), today
+    daily_kwh             last 7 days, oldest first, today last; null where unknown
+    best_kwh_30d          best day of the last 30    tomorrow_kwh         forecast
+    array_kwp             sets the fixed chart scale updated              "HH:MM" local
+    irradiance, irradiance_series, battery_pct, battery_series, grid_w, grid_series   also understood
 
-Day view (sun up, now_w > 0): hero = now, with today's kWh and the peak beneath;
-tiles = irradiance with sparkline, grid voltage (red outside 216..253 V);
-chart = kWh by hour with the current hour highlighted and the peak in its
-label.
+Day view: the title is a sentence about the day ("4.5 kWh, ahead of
+yesterday"). Hero = generation now, peak beneath. Tiles = how much of the
+sun's offer became power ("vs sun"), and grid voltage at regular weight
+unless it is out of 216..253 V, when it goes red. Chart = kWh by hour on a
+fixed scale, yesterday's profile as an outline behind the bars, the current
+hour marked by a full-height yellow band.
 
-Night view: hero = today's total; chart = last 7 days with today
-highlighted; tiles = best of the month and inverter temperature; meter =
-today against the best day.
+Night view: title = today's total against yesterday or the forecast. Hero =
+today's kWh, peak beneath. Tiles = vs sun for the day, and tomorrow's
+forecast. Chart = last 7 days on a fixed scale with today's band and a
+dotted line at the best day of the month.
 """
 
 import argparse
 import datetime as dt
 import json
+import math
 import subprocess
 import sys
 import urllib.request
@@ -38,10 +44,13 @@ from pathlib import Path
 DASHBOARD = Path(__file__).resolve().parents[2] / "python" / "dashboard.py"
 
 DEMO = {
-    "now_w": 2800, "e_day_kwh": 4.5, "peak_w": 3050, "peak_time": "12:40", "temp_c": 39.2, "vgrid": 247.6,
-    "irradiance": 632, "irradiance_series": [101, 147, 199, 250, 301, 351, 400, 448, 496, 542, 585, 622],
+    "now_w": 2800, "e_day_kwh": 4.5, "peak_w": 3050, "peak_time": "12:40", "vgrid": 247.6, "array_kwp": 5.2,
+    "vs_sun_now_pct": 89, "vs_sun_day_pct": 81,
     "hourly_kwh": [0, 0.19, 0.56, 1.68, 2.1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "hour_start": 5,
-    "daily_kwh": [18.2, 21.7, 9.4, 16.0, 22.5, 19.8, 4.5], "best_kwh_30d": 24.1, "updated": "09:53",
+    "yesterday_hourly_kwh": [0, 0.1, 0.4, 1.2, 1.9, 2.6, 3.1, 3.4, 3.3, 2.9, 2.2, 1.4, 0.6, 0.1, 0, 0],
+    "yesterday_by_now_kwh": 3.6,
+    "daily_kwh": [18.2, 21.7, 9.4, 16.0, 22.5, 19.8, 4.5], "best_kwh_30d": 24.1, "tomorrow_kwh": 18.1,
+    "updated": "09:53",
 }
 
 
@@ -65,60 +74,76 @@ def load(a: argparse.Namespace) -> dict:
     sys.exit("give --demo, --file, --url or --command")
 
 
+def sentence(e_day, y_by_now, tomorrow, night: bool) -> str:
+    """The one line the reader should take away."""
+    if e_day is None:
+        return "Solar"
+    if y_by_now:
+        diff = e_day - y_by_now
+        if abs(diff) < 0.3:
+            return f"{e_day:.1f} kWh, level with yesterday"
+        return f"{e_day:.1f} kWh, {diff:+.1f} vs yesterday"
+    if night and tomorrow:
+        return f"{e_day:.1f} kWh today, ~{tomorrow:.0f} tomorrow"
+    return f"{e_day:.1f} kWh so far today"
+
+
 def build_spec(d: dict, night: bool | None, import_alert: float) -> dict:
     now = dt.datetime.now()
     now_w = d.get("now_w")
     if night is None:
-        night = (now_w == 0 or now_w is None) and (now.hour >= 18 or now.hour < 6)
-    spec = {"title": "Solar", "updated": d.get("updated") or now.strftime("%H:%M")}
-    e_day = d.get("e_day_kwh")
-    best = d.get("best_kwh_30d")
-    peak = d.get("peak_w")
-    peak_s = (kw(peak) + (f" @{d['peak_time']}" if d.get("peak_time") else "")) if peak else ""
+        night = (not now_w) and (now.hour >= 18 or now.hour < 6)
+    e_day, best, peak = d.get("e_day_kwh"), d.get("best_kwh_30d"), d.get("peak_w")
+    kwp = float(d.get("array_kwp") or 5.0)
+    peak_s = (f"peak {kw(peak)}" + (f" @{d['peak_time']}" if d.get("peak_time") else "")) if peak else ""
+    y_hourly = [v or 0 for v in (d.get("yesterday_hourly_kwh") or [])]
+    have_yesterday = any(y_hourly)
+    spec = {"title": sentence(e_day, d.get("yesterday_by_now_kwh") if have_yesterday else None, d.get("tomorrow_kwh"), night),
+            "updated": d.get("updated") or now.strftime("%H:%M")}
 
+    tiles = []
     if not night:
         if now_w is not None:
-            under = ([f"{e_day:.1f} kWh"] if e_day is not None else []) + ([f"peak {kw(peak)}"] if peak else [])
-            spec["hero"] = {"label": "Generating now", "value": kw(now_w), "delta": " · ".join(under)}
-        tiles = []
-        if "irradiance" in d:
-            tiles.append({"label": "Sun W/m²", "value": f"{d['irradiance']:.0f}", "spark": d.get("irradiance_series") or []})
+            spec["hero"] = {"label": "Generating now", "value": kw(now_w), "delta": peak_s}
+        if d.get("vs_sun_now_pct") is not None:
+            tiles.append({"label": "vs sun", "value": f"{d['vs_sun_now_pct']:.0f}%", "alert": d["vs_sun_now_pct"] < 40})
+        elif "irradiance" in d:
+            tiles.append({"label": "Sun W/m²", "value": f"{d['irradiance']:.0f}",
+                          "spark": d.get("irradiance_series") or [], "spark_range": [0, 1000]})
         if "battery_pct" in d:
             tiles.append({"label": "Battery", "value": f"{d['battery_pct']:.0f}%",
-                          "spark": d.get("battery_series") or [], "alert": d["battery_pct"] < 20})
+                          "spark": d.get("battery_series") or [], "spark_range": [0, 100], "alert": d["battery_pct"] < 20})
         if "grid_w" in d:
             g = d["grid_w"]
             tiles.append({"label": "Grid " + ("import" if g > 0 else "export"), "value": kw(abs(g)),
                           "spark": d.get("grid_series") or [], "alert": g > import_alert})
         elif "vgrid" in d:
             tiles.append({"label": "Grid V", "value": f"{d['vgrid']:.0f}", "alert": not 216 <= d["vgrid"] <= 253})
-        if tiles:
-            spec["tiles"] = tiles[:2]
-        hourly = list(d.get("hourly_kwh") or [])
+        hourly = [v or 0 for v in (d.get("hourly_kwh") or [])]
         if hourly:
             start = int(d.get("hour_start", 0))
             cur = now.hour - start
-            spec["chart"] = {"type": "columns", "label": "kWh by hour" + (f" · peak {d['peak_time']}" if d.get("peak_time") else ""),
-                             "values": [v or 0 for v in hourly],
+            spec["chart"] = {"type": "columns", "label": "kWh/h" + (", yesterday outlined" if have_yesterday else " today"),
+                             "values": hourly, "max": kwp,          # one hour at full array power is the top of the scale
+                             "reference": y_hourly if have_yesterday else [],
                              "highlight": cur if 0 <= cur < len(hourly) else None,
                              "ticks": [[i, str((start + i) % 24)] for i in range(0, len(hourly), 3)]}
     else:
         if e_day is not None:
-            spec["hero"] = {"label": "Generated today", "value": f"{e_day:.1f}", "delta": "kWh" + (f" · peak {peak_s}" if peak_s else "")}
-        tiles = []
-        if best is not None:
-            tiles.append({"label": "Best, 30d", "value": f"{best:.1f}"})
-        if "temp_c" in d:
-            tiles.append({"label": "Inverter °C", "value": f"{d['temp_c']:.0f}"})
-        if tiles:
-            spec["tiles"] = tiles
+            spec["hero"] = {"label": "Generated today, kWh", "value": f"{e_day:.1f}", "delta": peak_s}
+        if d.get("vs_sun_day_pct") is not None:
+            tiles.append({"label": "vs sun", "value": f"{d['vs_sun_day_pct']:.0f}%", "alert": d["vs_sun_day_pct"] < 40})
+        if d.get("tomorrow_kwh") is not None:
+            tiles.append({"label": "tomorrow kWh", "value": f"~{d['tomorrow_kwh']:.0f}"})
         daily = d.get("daily_kwh")
         if daily:
-            spec["chart"] = {"type": "columns", "label": "kWh, last 7 days",
+            top = max([v or 0 for v in daily] + [best or 0, d.get("tomorrow_kwh") or 0])
+            spec["chart"] = {"type": "columns", "label": "kWh/day" + (" · best dotted" if best else ""),
                              "values": [v or 0 for v in daily], "highlight": len(daily) - 1,
+                             "max": math.ceil(top / 5) * 5 or 5, "reference_line": best,
                              "ticks": [[i, (now - dt.timedelta(days=len(daily) - 1 - i)).strftime("%a")[0]] for i in range(len(daily))]}
-    if night and e_day is not None and best:
-        spec["meter"] = {"label": "vs best", "value": min(1.0, e_day / best)}
+    if tiles:
+        spec["tiles"] = tiles[:2]
     return spec
 
 

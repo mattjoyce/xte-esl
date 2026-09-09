@@ -14,7 +14,11 @@ Spec (every key optional, order of regions is fixed):
       "hero":  {"label": "Now", "value": "3.2 kW", "delta": "+0.4 vs 1h", "alert": false},
       "tiles": [{"label": "Battery", "value": "82%", "spark": [..], "alert": false}, ...],  up to 3
       "chart": {"type": "columns" | "line", "label": "kWh by hour",
-                "values": [..], "highlight": 5, "alert_above": 4.0},
+                "values": [..], "highlight": 5, "alert_above": 4.0,
+                "max": 5.2,                 fixed top of scale, so bars mean the same thing every refresh
+                "reference": [..],          columns only: an outline profile drawn behind the bars
+                "reference_line": 24.1},    columns only: dotted hairline at a value
+      tiles may carry "spark_range": [lo, hi] to fix the sparkline scale
       "meter": {"label": "Tank", "value": 0.62, "warn": 0.8}
     }
 
@@ -87,12 +91,17 @@ class Box:
 # ---- components -------------------------------------------------------------
 
 def header(d, box: Box, title: str, updated: str) -> None:
-    f = font(BOLD, 12)
-    if title:
-        d.text((box.x, box.y), title, fill=BLACK, font=f)
+    right = box.w
     if updated:
         fr = font(REGULAR, 10)
-        d.text((box.x2 - d.textlength(updated, font=fr), box.y + 1), updated, fill=BLACK, font=fr)
+        uw = d.textlength(updated, font=fr)
+        d.text((box.x2 - uw, box.y + 1), updated, fill=BLACK, font=fr)
+        right -= uw + 8
+    if title:
+        f = fit(d, title, BOLD, 12, 10, right)
+        while len(title) > 3 and d.textlength(title, font=f) > right:
+            title = title[:-2].rstrip() + "…"
+        d.text((box.x, box.y + (12 - f.size)), title, fill=BLACK, font=f)
     d.line([box.x, box.y2, box.x2, box.y2], fill=BLACK, width=1)
 
 
@@ -115,11 +124,12 @@ def hero(d, box: Box, spec: dict) -> None:
         d.text((box.x, y), delta, fill=RED if alert else BLACK, font=fd)
 
 
-def sparkline(d, box: Box, values, alert=False) -> None:
-    """1px line, hairline baseline, current point marked."""
+def sparkline(d, box: Box, values, alert=False, rng=None) -> None:
+    """1px line, hairline baseline, current point marked. rng=[lo, hi] fixes the scale across refreshes."""
     if len(values) < 2 or box.w < 8 or box.h < 4:
         return
-    lo, hi = min(values), max(values)
+    lo, hi = (rng[0], rng[1]) if rng else (min(values), max(values))
+    values = [min(max(v, lo), hi) for v in values]
     span = (hi - lo) or 1.0
     n = len(values)
     pts = []
@@ -145,7 +155,7 @@ def tile(d, box: Box, spec: dict) -> None:
     fv = fit(d, value, BOLD, min(22, room), 12, box.w - 2)
     d.text((box.x - 1, y - 3), value, fill=RED if alert else BLACK, font=fv)
     if spark:
-        sparkline(d, Box(box.x, box.y2 - spark_h + 1, box.w - 4, spark_h), spark, alert)
+        sparkline(d, Box(box.x, box.y2 - spark_h + 1, box.w - 4, spark_h), spark, alert, spec.get("spark_range"))
 
 
 def columns(d, box: Box, spec: dict) -> None:
@@ -163,7 +173,9 @@ def columns(d, box: Box, spec: dict) -> None:
     bw = max(1, (plot.w - gap * (n - 1)) // n)
     used = bw * n + gap * (n - 1)
     x0 = plot.x + (plot.w - used) // 2
-    hi = max(values) or 1.0
+    reference = list(spec.get("reference") or [])          # same length as values: 1px outline profile behind the bars
+    ref_line = spec.get("reference_line")                    # scalar: horizontal hairline, e.g. best day
+    hi = max([max(values), spec.get("max") or 0] + reference + ([ref_line] if ref_line else [])) or 1.0
     lo = min(0.0, min(values))
     span = (hi - lo) or 1.0
     label_room = 10                                   # one row above the tallest bar for its value
@@ -174,18 +186,27 @@ def columns(d, box: Box, spec: dict) -> None:
     alert_above = spec.get("alert_above")
     fl = font(REGULAR, 8)
     extreme = max(range(n), key=lambda i: values[i])
+    if highlight is not None and 0 <= highlight < n:            # full-height band marks the column, whatever its bar
+        hx = x0 + highlight * (bw + gap)
+        d.rectangle([hx, plot.y + label_room, hx + bw - 1, base_y], fill=YELLOW)
+    for i, rv in enumerate(reference[:n]):                        # yesterday / expected: 1px outline profile
+        x = x0 + i * (bw + gap)
+        ry = plot.y2 - scale(rv)
+        d.line([x, ry, x + bw - 1, ry], fill=BLACK, width=1)
+        if i + 1 < len(reference):
+            ny = plot.y2 - scale(reference[i + 1])
+            d.line([x + bw - 1, ry, x + bw - 1, ny], fill=BLACK, width=1)
+    if ref_line is not None:
+        ly = plot.y2 - scale(ref_line)
+        for xx in range(plot.x, plot.x2, 3):                      # dotted hairline
+            d.point((xx, ly), fill=BLACK)
     for i, v in enumerate(values):
         x = x0 + i * (bw + gap)
         top = plot.y2 - scale(v)
-        ink = BLACK
-        if alert_above is not None and v > alert_above:
-            ink = RED
-        elif highlight is not None and i == highlight:
-            ink = YELLOW
+        ink = RED if (alert_above is not None and v > alert_above) else BLACK
         if v >= 0:
-            d.rectangle([x, top, x + bw - 1, base_y], fill=ink)
-            if ink == YELLOW:
-                d.rectangle([x, top, x + bw - 1, base_y], outline=BLACK, width=1)
+            if top < base_y:
+                d.rectangle([x, top, x + bw - 1, base_y], fill=ink)
         else:
             d.rectangle([x, base_y, x + bw - 1, top], fill=ink)
         if i == extreme and bw >= 6 and top - label_room >= plot.y:   # direct-label the extreme only
