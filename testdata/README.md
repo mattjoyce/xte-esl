@@ -69,5 +69,8 @@ grey, which must pack as black.
 python/xte.py            # Python port: 12 first-generation vectors, then the second generation, then precondition checks
 ```
 
-Go and TypeScript ports should ship an equivalent `selftest` that loads this
+The Go port runs with `cd go && go run ./cmd/selftest`; its tests run the
+same checks. The TypeScript port runs with `cd ts && bun run selftest`.
+
+Ports should ship an equivalent `selftest` that loads this
 file, checks every field above, and exits non-zero on any mismatch.

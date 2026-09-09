@@ -34,6 +34,8 @@ with this SDK.
 - **Push an image to a tag**: the quick start below.
 - **Use TypeScript**: the [SDK quick start](ts/README.md) covers encoding,
   browser uploads, cancellation, and custom BLE transports.
+- **Use Go**: the [Go SDK quick start](go/README.md) covers the dependency-free
+  codec and uploader, with an optional native Linux BLE adapter.
 - **Write another port**: run the Python self-test, read
   [`testdata/README.md`](testdata/README.md), implement protocol.md §7
   against the vectors, then §6, then the transport. Codec before BLE.
@@ -118,7 +120,7 @@ app reads it. [NFC findings](docs/nfc-findings.md) has the detail.
 | Geometry | 122x250 portrait buffer, rotate 90 |
 | Large images, OTA | specified, not exercised |
 | TypeScript | codec passes all vectors; uploader verified on PSJ-213 via bleak bridge and via Web Bluetooth from Android Chrome |
-| Go | not started |
+| Go | zero-dependency codec/uploader; all vectors pass; optional Linux BlueZ adapter; Go hardware check pending |
 | License | MIT |
 
 ## What it is not

@@ -1,0 +1,29 @@
+name: Go SDK
+
+on:
+  push:
+    paths: ['go/**', 'testdata/**', '.github/workflows/go.yml']
+  pull_request:
+    paths: ['go/**', 'testdata/**', '.github/workflows/go.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ['go', 'go/bluez']
+        version: ['1.22.x', 'stable']
+    defaults:
+      run:
+        working-directory: ${{ matrix.module }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.version }}
+          cache: false
+      - run: go test -race ./...
+      - run: go vet ./...
+      - run: go build ./...
+      - if: matrix.module == 'go'
+        run: go run ./cmd/selftest
