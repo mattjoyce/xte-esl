@@ -43,6 +43,7 @@ def fit(d: ImageDraw.ImageDraw, text: str, path: Path, max_px: int, min_px: int,
 def render(a: argparse.Namespace) -> Image.Image:
     im = Image.new("RGB", (W, H), INK["white"])
     d = ImageDraw.Draw(im)
+    d.fontmode = "1"     # hard pixels: the panel has no greys
     x0, text_w = 8, W - 16
 
     if a.qr:

@@ -244,6 +244,7 @@ def meter(d, box: Box, spec: dict) -> None:
 def render(spec: dict) -> Image.Image:
     im = Image.new("RGB", (W, H), WHITE)
     d = ImageDraw.Draw(im)
+    d.fontmode = "1"     # no anti-aliasing: the panel has no greys, and snapped edges mangle small text
     top, bottom, left, right = 2, H - 2, 4, W - 4
 
     if spec.get("title") or spec.get("updated"):
