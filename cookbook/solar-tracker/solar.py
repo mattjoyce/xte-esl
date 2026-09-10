@@ -15,7 +15,7 @@ Source JSON (every key optional; missing ones leave their region empty):
     vs_sun_now_pct        output / (irradiance x kWp), now
     vs_sun_day_pct        energy / (insolation x kWp), today
     daily_kwh             last 7 days, oldest first, today last; null where unknown
-    best_kwh_30d          best day of the last 30    tomorrow_kwh         forecast
+    best_kwh, best_days   best day of the last best_days   tomorrow_kwh   forecast
     array_kwp             sets the fixed chart scale updated              "HH:MM" local
     irradiance, irradiance_series, battery_pct, battery_series, grid_w, grid_series   also understood
 
@@ -49,7 +49,7 @@ DEMO = {
     "hourly_kwh": [0, 0.19, 0.56, 1.68, 2.1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "hour_start": 5,
     "yesterday_hourly_kwh": [0, 0.1, 0.4, 1.2, 1.9, 2.6, 3.1, 3.4, 3.3, 2.9, 2.2, 1.4, 0.6, 0.1, 0, 0],
     "yesterday_by_now_kwh": 3.6,
-    "daily_kwh": [18.2, 21.7, 9.4, 16.0, 22.5, 19.8, 4.5], "best_kwh_30d": 24.1, "tomorrow_kwh": 18.1,
+    "daily_kwh": [18.2, 21.7, 9.4, 16.0, 22.5, 19.8, 4.5], "best_kwh": 24.1, "best_days": 28, "tomorrow_kwh": 18.1,
     "updated": "09:53",
 }
 
@@ -93,7 +93,7 @@ def build_spec(d: dict, night: bool | None, import_alert: float) -> dict:
     now_w = d.get("now_w")
     if night is None:
         night = (not now_w) and (now.hour >= 18 or now.hour < 6)
-    e_day, best, peak = d.get("e_day_kwh"), d.get("best_kwh_30d"), d.get("peak_w")
+    e_day, best, peak = d.get("e_day_kwh"), d.get("best_kwh"), d.get("peak_w")
     kwp = float(d.get("array_kwp") or 5.0)
     peak_s = (f"peak {kw(peak)}" + (f" @{d['peak_time']}" if d.get("peak_time") else "")) if peak else ""
     y_hourly = [v or 0 for v in (d.get("yesterday_hourly_kwh") or [])]
@@ -134,7 +134,7 @@ def build_spec(d: dict, night: bool | None, import_alert: float) -> dict:
         if d.get("vs_sun_day_pct") is not None:
             tiles.append({"label": "vs sun", "value": f"{d['vs_sun_day_pct']:.0f}%", "alert": d["vs_sun_day_pct"] < 40})
         if d.get("tomorrow_kwh") is not None:
-            tiles.append({"label": "tomorrow kWh", "value": f"~{d['tomorrow_kwh']:.0f}"})
+            tiles.append({"label": "tomorrow", "value": f"~{d['tomorrow_kwh']:.0f}"})
         daily = d.get("daily_kwh")
         if daily:
             top = max([v or 0 for v in daily] + [best or 0, d.get("tomorrow_kwh") or 0])

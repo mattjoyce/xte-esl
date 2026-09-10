@@ -28,7 +28,7 @@ the in-progress bar is.
 **Night** (no generation, after 18:00 or before 06:00). Today's total is
 the hero. Tiles are "vs sun" for the whole day and tomorrow's forecast
 from OpenMeteo. The chart is the last seven days on a fixed scale, today
-banded, with a dotted line at the best day of the month. No meter: the
+banded, with a dotted line at the best day of the last four weeks. No meter: the
 chart against the dotted line already says it.
 
 Red is reserved for alerts (grid voltage out of range, conversion below
@@ -41,8 +41,8 @@ The recipe reads one JSON snapshot and never talks to an inverter itself.
 For a GoodWe monitored with the rrdtool stack, `snapshot.py` in that
 project's `src/` builds the snapshot inside the `solar-monitor` container:
 hourly energy and today's peak from the one-minute archive, yesterday's
-profile from the hourly archive, the last seven days and best-of-month
-from the daily archive, irradiance and today's insolation from the weather
+profile from the hourly archive, the last seven days and the best day of the last four weeks by
+summing the hourly archive into local-day buckets, irradiance and today's insolation from the weather
 RRD, the live values from `rrdtool lastupdate`, and tomorrow's forecast
 from OpenMeteo. The "vs sun" ratio uses `ARRAY_KWP` (13 × 400 W = 5.2 by
 default) and the forecast a performance ratio of 0.8; set both as
